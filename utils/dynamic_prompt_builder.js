@@ -12,7 +12,7 @@
 import {
     BASE_CONTEXT,
     MACHINE_NUMBER_CONTEXT,
-    PHONE_CONFIRM_CONTEXT,
+    MACHINE_NUMBER_CONFIRM_CONTEXT,
     COMPLAINT_CONTEXT,
     MACHINE_STATUS_CONTEXT,
     CITY_CONTEXT,
@@ -33,6 +33,8 @@ import {
     getCollectionStatus
 } from './state_manager.js';
 
+import { buildKGEnhancedContext } from './kg_enhanced_prompts.js';
+
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    🎯 BUILD DYNAMIC PROMPT (TRULY DYNAMIC - MINIMAL CONTEXT)
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -45,24 +47,153 @@ import {
    
    Result: 50-60% additional reduction on top of previous 84%
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-export function buildDynamicPrompt(callData, useFunctionCalling = false) {
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   🧠 BUILD PURE KG-FIRST DYNAMIC PROMPT
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   
+   TRUE KG-FIRST APPROACH:
+   - KG Flow Director provides ALL instructions and context
+   - No state-based prompts or hardcoded context blocks
+   - Pure dynamic conversation flow based on KG analysis
+   - Agent capabilities-focused greeting instead of machine-number-focused
+   
+   Result: Truly dynamic conversations driven entirely by KG intelligence
+   
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+export async function buildDynamicPrompt(callData, useFunctionCalling = false, kgFlowDirection = null) {
+    // 🧠 KG-FIRST: Check if we have KG flow direction
+    if (kgFlowDirection && kgFlowDirection.success) {
+        console.log(`   🧠 [PURE KG-FIRST] Building prompt from KG Flow Director`);
+        return buildPureKGPrompt(callData, useFunctionCalling, kgFlowDirection);
+    }
+    
+    // 🔄 FALLBACK: Use hybrid approach if KG Flow Director not available
+    console.log(`   ⚠️ [FALLBACK] KG Flow Director not available, using hybrid approach`);
+    return buildHybridPrompt(callData, useFunctionCalling);
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   🧠 BUILD PURE KG-FIRST PROMPT
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   
+   Uses ONLY KG Flow Director analysis to build the entire prompt.
+   No state-based context blocks or hardcoded instructions.
+   
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+function buildPureKGPrompt(callData, useFunctionCalling, kgFlowDirection) {
+    // Start with minimal base agent identity
+    let prompt = buildMinimalAgentIdentity();
+    
+    // Add KG Flow Direction (PRIMARY INSTRUCTIONS)
+    if (kgFlowDirection.llmInstructions.primaryInstruction) {
+        prompt += `\n\n=== 🧠 KG FLOW DIRECTION ===\n${kgFlowDirection.llmInstructions.primaryInstruction}\n`;
+    }
+    
+    // Add KG Context Enhancements
+    if (kgFlowDirection.llmInstructions.contextEnhancements.length > 0) {
+        prompt += `\n=== 🎯 KG CONTEXT ENHANCEMENTS ===\n${kgFlowDirection.llmInstructions.contextEnhancements.join('\n')}\n`;
+    }
+    
+    // Add KG Function Recommendations
+    if (kgFlowDirection.llmInstructions.functionRecommendations.length > 0) {
+        prompt += `\n=== 🔧 KG FUNCTION RECOMMENDATIONS ===\n${kgFlowDirection.llmInstructions.functionRecommendations.join('\n')}\n`;
+    }
+    
+    // Add KG Response Guidelines
+    if (kgFlowDirection.llmInstructions.responseGuidelines.length > 0) {
+        prompt += `\n=== 📋 KG RESPONSE GUIDELINES ===\n${kgFlowDirection.llmInstructions.responseGuidelines.join('\n')}\n`;
+    }
+    
+    // Add function calling context if enabled
+    if (useFunctionCalling) {
+        prompt += FUNCTION_CALLING_CONTEXT;
+    }
+    
+    // Add minimal conversation context
+    prompt += buildMinimalConversation(callData.messages);
+    
+    // Add KG optimization summary
+    const tokenSavings = kgFlowDirection.performanceMetrics.tokenSavings;
+    const optimizations = [`KG-First Flow Direction (${kgFlowDirection.flowPlan.flowType})`];
+    
+    prompt += `\n\n=== 🧠 KG-FIRST FLOW DIRECTOR ACTIVE ===\nToken Savings: ${tokenSavings}\nOptimizations: ${optimizations.join(', ')}\nFlow Type: ${kgFlowDirection.flowPlan.flowType}\nNext Action: ${kgFlowDirection.flowPlan.nextAction}\n`;
+    
+    return prompt;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   🔄 BUILD HYBRID PROMPT (FALLBACK)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   
+   Fallback to the previous hybrid approach if KG Flow Director fails.
+   This maintains backward compatibility.
+   
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+async function buildHybridPrompt(callData, useFunctionCalling) {
     // Determine current state
     const currentState = determineCurrentState(callData);
     
     // Get collection status
     const collectionStatus = getCollectionStatus(callData.extractedData, callData.customerData);
     
+    // Get KG enhancements (Phase 1 approach)
+    let kgEnhancements = null;
+    try {
+        kgEnhancements = await buildKGEnhancedContext(
+            currentState, 
+            callData.extractedData, 
+            callData.customerData, 
+            callData.messages
+        );
+        
+        if (kgEnhancements.totalTokenSavings > 0) {
+            console.log(`   🧠 [KG ENHANCED] Token savings: ${kgEnhancements.totalTokenSavings}, Optimizations: ${kgEnhancements.optimizations.join(', ')}`);
+        }
+    } catch (error) {
+        console.warn(`   ⚠️ [KG ENHANCED] Failed to get KG enhancements: ${error.message}`);
+        kgEnhancements = {
+            intentContext: '',
+            modelContext: '',
+            routingContext: '',
+            shortcutContext: '',
+            totalTokenSavings: 0,
+            optimizations: []
+        };
+    }
+    
     // Start with base context (always included)
     let prompt = BASE_CONTEXT;
     
+    // Add KG-enhanced context if available
+    if (kgEnhancements.intentContext) {
+        prompt += `\n\n${kgEnhancements.intentContext}`;
+    }
+    
     // Add state-specific context (ONLY for current state)
-    prompt += getStateSpecificContext(currentState);
+    const stateContext = getStateSpecificContext(currentState);
+    
+    // Enhance state context with KG model optimization if available
+    if (kgEnhancements.modelContext && currentState !== STATES.COLLECT_COMPLAINT) {
+        prompt += `\n\n${stateContext}\n\n${kgEnhancements.modelContext}`;
+    } else {
+        prompt += stateContext;
+    }
+    
+    // Add KG routing context if available
+    if (kgEnhancements.routingContext) {
+        prompt += `\n\n${kgEnhancements.routingContext}`;
+    }
+    
+    // Add KG shortcut context if available
+    if (kgEnhancements.shortcutContext) {
+        prompt += `\n\n${kgEnhancements.shortcutContext}`;
+    }
     
     // Add side question handling (always included)
     prompt += SIDE_QUESTION_CONTEXT;
     
-    // Add function calling context (if enabled) - FULL CONTEXT so LLM knows about ALL functions
-    // This is critical because user can request corrections/updates at ANY time in ANY state
+    // Add function calling context (if enabled)
     if (useFunctionCalling) {
         prompt += FUNCTION_CALLING_CONTEXT;
     }
@@ -81,7 +212,52 @@ export function buildDynamicPrompt(callData, useFunctionCalling = false) {
     // Add recent conversation history (last 2 turns only)
     prompt += buildMinimalConversation(callData.messages);
     
+    // Add KG optimization summary if enhancements were applied
+    if (kgEnhancements.totalTokenSavings > 0) {
+        prompt += `\n\n=== 🧠 KG ENHANCED CONTEXT ===\nToken Savings: ${kgEnhancements.totalTokenSavings}\nOptimizations: ${kgEnhancements.optimizations.join(', ')}\n`;
+    }
+    
     return prompt;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   🤖 BUILD MINIMAL AGENT IDENTITY
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   
+   Minimal agent identity for pure KG-first approach.
+   No hardcoded instructions - KG provides all direction.
+   
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+function buildMinimalAgentIdentity() {
+    return `You are Priya, a warm and intelligent service agent at Rajesh Motors JCB service center.
+
+=== 🎯 YOUR CAPABILITIES ===
+• Register JCB machine complaints
+• Book service appointments  
+• Provide technical support
+• Route to appropriate specialists
+• Handle customer inquiries
+
+=== 🚫 WHAT YOU CANNOT PROVIDE ===
+• Food items (French fries, pizza, etc.)
+• Entertainment services (movies, music, games)
+• Personal services (shopping, travel, etc.)
+• Non-JCB related products or services
+• General information outside JCB machine scope
+
+=== 🗣️ COMMUNICATION STYLE ===
+• Speak in natural, conversational Hindi
+• Be warm, helpful, and professional
+• Keep responses concise (10-15 words max)
+• Use empathetic tone for problems
+• No honorifics like "ji" - speak naturally
+
+=== 🔄 OUT-OF-SCOPE HANDLING ===
+When customers ask for non-JCB services, use this exact format:
+"माफ करिए, हम [requested item] नहीं दे सकते। मैं Rajesh Motors से Priya हूँ और मैं आपकी JCB मशीन की complaint register करने, service book करने, या technical problem solve करने में मदद कर सकती हूँ। आपकी कोई मशीन की समस्या है?"
+
+=== 🧠 KG-FIRST INTELLIGENCE ===
+You are powered by Knowledge Graph intelligence that analyzes every user input and provides you with specific instructions on how to handle each conversation turn. Follow the KG Flow Direction provided below for optimal conversation flow.`;
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -97,8 +273,8 @@ function getStateSpecificContext(state) {
         case STATES.VALIDATE_MACHINE:
             return MACHINE_NUMBER_CONTEXT;
         
-        case STATES.CONFIRM_PHONE:
-            return PHONE_CONFIRM_CONTEXT;
+        case STATES.CONFIRM_MACHINE_NO:
+            return MACHINE_NUMBER_CONFIRM_CONTEXT;
         
         case STATES.COLLECT_COMPLAINT:
             return COMPLAINT_CONTEXT;
@@ -118,6 +294,12 @@ function getStateSpecificContext(state) {
         case STATES.FINAL_CONFIRM:
         case STATES.SUBMIT:
             return FINAL_CONFIRM_CONTEXT;
+        
+        // Update states - use machine number context for machine updates
+        case STATES.UPDATE_MACHINE:
+        case STATES.UPDATE_MACHINE_VALIDATE:
+        case STATES.UPDATE_MACHINE_CONFIRM:
+            return MACHINE_NUMBER_CONTEXT;
         
         default:
             // Fallback to machine number context
@@ -270,7 +452,6 @@ function getStateDescription(state) {
         [STATES.GREETING]: 'Greet and ask for machine number',
         [STATES.COLLECT_MACHINE_NO]: 'Collect machine number',
         [STATES.VALIDATE_MACHINE]: 'Validating machine number',
-        [STATES.CONFIRM_PHONE]: 'Confirm registered phone',
         [STATES.COLLECT_COMPLAINT]: 'Collect complaint/problem',
         [STATES.COLLECT_STATUS]: 'Collect machine status (band/chal rahi)',
         [STATES.COLLECT_CITY]: 'Collect city/location',

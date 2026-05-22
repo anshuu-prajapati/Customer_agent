@@ -23,6 +23,7 @@
     "groq-sdk": "^1.1.1",
     "mongodb": "^7.0.0",
     "mongoose": "^9.1.5",
+    "neo4j-driver": "^5.15.0",
     "nodemon": "^3.1.11",
     "openai": "^6.16.0",
     "path": "^0.12.7",

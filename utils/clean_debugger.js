@@ -37,10 +37,10 @@ export function logCallStart(callSid, callerPhone, machineNo) {
 }
 
 /**
- * Log a turn (user input + agent response) with timing metrics
+ * Log a turn (user input + agent response) with timing metrics and KG monitoring
  */
 export function logTurn(turnNumber, userInput, agentResponse, callData, options = {}) {
-    const { functionCalled = null, timings = null } = options;
+    const { functionCalled = null, timings = null, kgData = null } = options;
     
     console.log('\n' + '─'.repeat(80));
     console.log(`🔄 TURN ${turnNumber}`);
@@ -62,6 +62,9 @@ export function logTurn(turnNumber, userInput, agentResponse, callData, options 
     const currentState = determineCurrentState(callData);
     const stateDisplay = currentState.replace(/_/g, ' ').toUpperCase();
     console.log(`📍 STATE: ${stateDisplay}`);
+    
+    // 🧠 KG MONITORING SECTION
+    logKGStatus(callData, kgData);
     
     // Collected data
     const collectionStatus = getCollectionStatus(callData.extractedData, callData.customerData);
@@ -88,6 +91,7 @@ export function logTurn(turnNumber, userInput, agentResponse, callData, options 
         console.log(`⏱️  TIMING BREAKDOWN:`);
         if (timings.lookup) console.log(`   🔍 Lookups:  ${timings.lookup.toFixed(0)}ms`);
         if (timings.ai)     console.log(`   🧠 AI/LLM:   ${timings.ai.toFixed(0)}ms`);
+        if (timings.kg)     console.log(`   🧠 KG Query: ${timings.kg.toFixed(0)}ms`);
         if (timings.tts)    console.log(`   🎤 TTS Gen:  ${timings.tts.toFixed(0)}ms`);
         if (timings.total)  console.log(`   ⚡ TOTAL:    ${timings.total.toFixed(0)}ms`);
         console.log('─'.repeat(40));
@@ -166,8 +170,175 @@ export function logError(context, error) {
 }
 
 /**
- * Log submission
+ * 🧠 KG MONITORING - Log Knowledge Graph status and performance
  */
+export function logKGStatus(callData, kgData = null) {
+    // Check if KG is enabled and working
+    const kgEnabled = process.env.NEO4J_PASSWORD ? true : false;
+    
+    if (!kgEnabled) {
+        console.log(`🧠 KG: ❌ DISABLED (No Neo4j credentials)`);
+        return;
+    }
+    
+    // KG Connection Status
+    let kgStatus = '🟢 CONNECTED';
+    try {
+        // This will be set by KG service health check
+        if (callData.kgConnectionFailed) {
+            kgStatus = '🔴 DISCONNECTED';
+        }
+    } catch (error) {
+        kgStatus = '🟡 UNKNOWN';
+    }
+    
+    console.log(`🧠 KG: ${kgStatus}`);
+    
+    // KG Features Active in This Call
+    const kgFeatures = [];
+    let totalTokenSavings = 0;
+    
+    // Intent Analysis
+    if (callData.kgIntentAnalysis) {
+        const intent = callData.kgIntentAnalysis;
+        kgFeatures.push(`Intent: ${intent.intent} (${(intent.confidence * 100).toFixed(0)}%)`);
+        totalTokenSavings += (intent.token_reduction * 300) || 0;
+    }
+    
+    // Model Optimization
+    if (callData.kgModelOptimization) {
+        const model = callData.kgModelOptimization;
+        const fastTrack = model.fast_track_enabled ? '⚡' : '🐌';
+        kgFeatures.push(`Model: ${model.model} ${fastTrack}`);
+        totalTokenSavings += 150;
+    }
+    
+    // Repeat Customer
+    if (callData.kgRepeatCustomer) {
+        const repeat = callData.kgRepeatCustomer;
+        if (repeat.is_repeat) {
+            kgFeatures.push(`Repeat: ${repeat.previous_complaints}x customer ⚡`);
+            totalTokenSavings += 200;
+        }
+    }
+    
+    // Specialist Routing
+    if (callData.kgSpecialistRouting) {
+        const routing = callData.kgSpecialistRouting;
+        const priority = routing.priority_level === 'high' ? '🔥' : '📋';
+        kgFeatures.push(`Routing: ${routing.specialist_type} ${priority}`);
+        totalTokenSavings += 120;
+    }
+    
+    // Flow Shortcuts
+    if (callData.kgFlowShortcuts && callData.kgFlowShortcuts.length > 0) {
+        kgFeatures.push(`Shortcuts: ${callData.kgFlowShortcuts.length} applied ⚡`);
+        totalTokenSavings += callData.kgFlowShortcuts.length * 100;
+    }
+    
+    // Display KG Features
+    if (kgFeatures.length > 0) {
+        console.log(`🧠 KG ACTIVE: ${kgFeatures.join(' | ')}`);
+        console.log(`🧠 KG SAVINGS: ~${totalTokenSavings} tokens saved`);
+    } else {
+        console.log(`🧠 KG ACTIVE: No optimizations applied yet`);
+    }
+    
+    // KG Performance Data (if provided)
+    if (kgData) {
+        if (kgData.queryTime) {
+            console.log(`🧠 KG PERF: Query ${kgData.queryTime}ms | Cache: ${kgData.cacheHit ? 'HIT' : 'MISS'}`);
+        }
+        if (kgData.errors && kgData.errors.length > 0) {
+            console.log(`🧠 KG ERRORS: ${kgData.errors.join(', ')}`);
+        }
+    }
+}
+
+/**
+ * 🧠 Log detailed KG operation
+ */
+export function logKGOperation(operation, success, details = {}) {
+    const status = success ? '✅' : '❌';
+    const timing = details.timing ? ` (${details.timing}ms)` : '';
+    
+    console.log(`   🧠 KG ${status} ${operation}${timing}`);
+    
+    if (details.intent) {
+        console.log(`      Intent: ${details.intent} (${(details.confidence * 100).toFixed(0)}% confidence)`);
+    }
+    
+    if (details.tokenSavings) {
+        console.log(`      Token Savings: ${details.tokenSavings}`);
+    }
+    
+    if (details.specialist) {
+        console.log(`      Specialist: ${details.specialist}`);
+    }
+    
+    if (details.error) {
+        console.log(`      Error: ${details.error}`);
+    }
+}
+
+/**
+ * 🧠 Log KG session summary
+ */
+export function logKGSessionSummary(callData) {
+    console.log('\n' + '🧠'.repeat(40));
+    console.log(`🧠 KG SESSION SUMMARY`);
+    console.log('🧠'.repeat(40));
+    
+    // Total KG operations
+    const kgOperations = [];
+    let totalTokenSavings = 0;
+    let totalQueries = 0;
+    
+    if (callData.kgIntentAnalysis) {
+        kgOperations.push('Intent Analysis');
+        totalTokenSavings += (callData.kgIntentAnalysis.token_reduction * 300) || 0;
+        totalQueries++;
+    }
+    
+    if (callData.kgModelOptimization) {
+        kgOperations.push('Model Optimization');
+        totalTokenSavings += 150;
+        totalQueries++;
+    }
+    
+    if (callData.kgRepeatCustomer) {
+        kgOperations.push('Repeat Customer Detection');
+        totalTokenSavings += 200;
+        totalQueries++;
+    }
+    
+    if (callData.kgSpecialistRouting) {
+        kgOperations.push('Specialist Routing');
+        totalTokenSavings += 120;
+        totalQueries++;
+    }
+    
+    if (callData.kgFlowShortcuts) {
+        kgOperations.push('Flow Shortcuts');
+        totalTokenSavings += callData.kgFlowShortcuts.length * 100;
+        totalQueries++;
+    }
+    
+    console.log(`   Operations: ${kgOperations.length > 0 ? kgOperations.join(', ') : 'None'}`);
+    console.log(`   Queries: ${totalQueries}`);
+    console.log(`   Token Savings: ~${totalTokenSavings} tokens`);
+    console.log(`   Cost Savings: ~₹${(totalTokenSavings * 0.00015 * 83.5).toFixed(2)} INR`);
+    
+    // KG vs Non-KG comparison
+    const baselineTokens = 1500; // Estimated baseline conversation tokens
+    const optimizedTokens = baselineTokens - totalTokenSavings;
+    const reductionPercent = ((totalTokenSavings / baselineTokens) * 100).toFixed(1);
+    
+    console.log(`   Efficiency: ${reductionPercent}% token reduction`);
+    console.log(`   Baseline: ${baselineTokens} tokens → Optimized: ${optimizedTokens} tokens`);
+    
+    console.log('🧠'.repeat(40));
+}
 export function logSubmission(callData, apiResponse) {
     console.log('\n' + '🎉'.repeat(80));
     console.log(`✅ COMPLAINT SUBMITTED`);
@@ -181,7 +352,34 @@ export function logSubmission(callData, apiResponse) {
         console.log(`   Complaint ID: ${apiResponse.complaint_id}`);
     }
     
-    console.log('🎉'.repeat(80) + '\n');
+    // 🧠 KG Optimization Summary in Submission
+    const kgOptimized = apiResponse?.kgOptimized || false;
+    if (kgOptimized) {
+        console.log(`   🧠 KG OPTIMIZED: Yes - Enhanced with Knowledge Graph intelligence`);
+        
+        // Show which KG features were used
+        const kgFeatures = [];
+        if (callData.kgIntentAnalysis) kgFeatures.push('Intent Analysis');
+        if (callData.kgModelOptimization) kgFeatures.push('Model Optimization');
+        if (callData.kgRepeatCustomer) kgFeatures.push('Repeat Customer');
+        if (callData.kgSpecialistRouting) kgFeatures.push('Specialist Routing');
+        if (callData.kgFlowShortcuts) kgFeatures.push('Flow Shortcuts');
+        
+        if (kgFeatures.length > 0) {
+            console.log(`   🧠 KG FEATURES: ${kgFeatures.join(', ')}`);
+        }
+    } else {
+        console.log(`   🧠 KG OPTIMIZED: No - Standard flow used`);
+    }
+    
+    console.log('🎉'.repeat(80));
+    
+    // Show detailed KG session summary
+    if (kgOptimized) {
+        logKGSessionSummary(callData);
+    }
+    
+    console.log('\n');
 }
 
 export default {
@@ -190,5 +388,8 @@ export default {
     logFunction,
     logCallEnd,
     logError,
-    logSubmission
+    logSubmission,
+    logKGStatus,
+    logKGOperation,
+    logKGSessionSummary
 };

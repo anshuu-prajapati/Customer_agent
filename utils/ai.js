@@ -7,6 +7,8 @@ import serviceLogger from "./service_logger.js";
 import { getPhase1Functions, getPhase2Functions, getPhase3Functions, getPhase4Functions, getPhase5Functions } from "./function_definitions.js";
 import { buildDynamicPrompt } from "./dynamic_prompt_builder.js";
 import { initializeStateTracking, updateState, determineCurrentState } from "./state_manager.js";
+import kgFlowDirector from "./kg_flow_director.js";
+import { extractAllData } from "./data_extraction.js";
 
 const client = new AzureOpenAI({
     apiKey: process.env.AZURE_OPENAI_API_KEY,
@@ -112,9 +114,6 @@ function buildSystemPrompt(callData) {
     }
     
     // Detect pending confirmations
-    if (callData.pendingPhoneConfirm || callData.awaitingPhoneConfirm) {
-        pending.push("phone_confirmation");
-    }
     if (callData.pendingCityConfirm || callData.awaitingCityConfirm) {
         pending.push("city_confirmation");
     }
@@ -187,9 +186,7 @@ function buildSystemPrompt(callData) {
 • update_phone_number → When customer corrects phone
 • update_machine_status → When customer corrects status
 
-**Phase 3 - Confirmations (4 tools):**
-• confirm_phone_number → Confirm registered phone
-• provide_alternate_phone → Customer provides alternate phone
+**Phase 3 - Confirmations (1 tool):**
 • confirm_city_and_branch → Confirm city and service branch
 • final_confirmation → Final confirmation before submission
 
@@ -259,9 +256,6 @@ ${recentFunctions.map((f) => `• NEVER call ${f.name} again (already executed i
 
     // Build pending actions
     const pendingActions = [];
-    if (callData.pendingPhoneConfirm || callData.awaitingPhoneConfirm) {
-        pendingActions.push('⏳ Phone confirmation pending - awaiting customer response');
-    }
     if (callData.pendingCityConfirm || callData.awaitingCityConfirm) {
         pendingActions.push('⏳ City confirmation pending - awaiting customer response');
     }
@@ -573,19 +567,24 @@ export async function getSmartAIResponse(callData) {
         
         // Determine current state
         const currentState = determineCurrentState(callData);
-        console.log(`   🎯 [STATE] Current: ${currentState}`);
 
-        // Build dynamic system prompt based on current state
-        const systemPrompt = buildDynamicPrompt(callData, USE_FUNCTION_CALLING);
+        // 🧠 KG-FIRST FLOW DIRECTOR: Analyze user input and provide flow direction
+        let kgFlowDirection = null;
+        try {
+            if (lastUserMsg && lastUserMsg.trim() !== '') {
+                kgFlowDirection = await kgFlowDirector.analyzeAndDirectFlow(lastUserMsg, callData);
+            }
+        } catch (error) {
+            console.error(`KG Director error:`, error.message);
+            kgFlowDirection = null;
+        }
+
+        // Build dynamic system prompt based on current state (with KG enhancements)
+        const systemPrompt = await buildDynamicPrompt(callData, USE_FUNCTION_CALLING, kgFlowDirection);
         prompt = systemPrompt;
-        
-        // Log prompt stats for debugging
-        const promptLines = systemPrompt.split('\n').length;
-        const promptChars = systemPrompt.length;
-        const estimatedTokens = Math.ceil(promptChars / 4);
-        console.log(`   📝 [PROMPT] Lines: ${promptLines}, Chars: ${promptChars}, Est. Tokens: ${estimatedTokens}`);
 
-        const messages = [
+        // Declare messages outside try block for error handling access
+        let messages = [
             { role: "system", content: systemPrompt },
             ...callData.messages.slice(-8).map(m => ({
                 role: m.role === "user" ? "user" : "assistant",
@@ -598,7 +597,6 @@ export async function getSmartAIResponse(callData) {
         }
 
         // ⚡ PARALLEL OPTIMIZATION: Start LLM call
-        console.log(`   ⚡ [PARALLEL] Starting LLM call...`);
         const llmStartTime = Date.now();
         
         // Prepare request parameters
@@ -614,19 +612,24 @@ export async function getSmartAIResponse(callData) {
         if (USE_FUNCTION_CALLING) {
             requestParams.tools = [...getPhase1Functions(), ...getPhase2Functions(), ...getPhase3Functions(), ...getPhase4Functions(), ...getPhase5Functions()];
             requestParams.tool_choice = "auto"; // Let LLM decide when to call functions
-            console.log(`   🔧 [FUNCTION CALLING] Enabled - ${requestParams.tools.length} functions available (Phase 1: 5, Phase 2: 5, Phase 3: 4, Phase 4: 3, Phase 5: 3)`);
         }
         
-        const resp = await client.chat.completions.create(requestParams);
-        const llmEndTime = Date.now();
+        let resp;
+        let llmEndTime;
+        try {
+            resp = await client.chat.completions.create(requestParams);
+            llmEndTime = Date.now();
+        } catch (apiError) {
+            llmEndTime = Date.now();
+            console.error(`❌ [AZURE API] Request failed after ${llmEndTime - llmStartTime}ms: ${apiError.message}`);
+            throw apiError;
+        }
         
         // 💰 Track LLM usage
         if (resp.usage) {
             callData.usage.llmInputTokens += resp.usage.prompt_tokens || 0;
             callData.usage.llmOutputTokens += resp.usage.completion_tokens || 0;
         }
-
-        console.log(`   ⚡ [PARALLEL] LLM completed in ${llmEndTime - llmStartTime}ms`);
 
         const raw = resp.choices?.[0]?.message?.content?.trim();
         const finishReason = resp.choices?.[0]?.finish_reason;
@@ -635,15 +638,13 @@ export async function getSmartAIResponse(callData) {
         let functionCalls = null;
         if (USE_FUNCTION_CALLING && finishReason === 'tool_calls') {
             functionCalls = resp.choices?.[0]?.message?.tool_calls;
-            console.log(`   🔧 [FUNCTION CALLS] LLM requested ${functionCalls?.length || 0} function call(s)`);
         }
         
         if (!raw && !functionCalls) throw new Error("Empty Azure OpenAI response");
 
         response = raw || "[Function calls only]";
 
-        // ⚡ PARALLEL OPTIMIZATION: Parse response quickly (don't wait)
-        const parseStartTime = Date.now();
+        // Parse response quickly
         
         // Parse response - only if we have text content
         let replyText = "";
@@ -671,8 +672,7 @@ export async function getSmartAIResponse(callData) {
             replyText = ""; // Will be set after function execution
         }
 
-        const parseEndTime = Date.now();
-        console.log(`   ⚡ [PARALLEL] Parsing completed in ${parseEndTime - parseStartTime}ms`);
+
 
         // Merge extracted data (fast operation)
         const merged = { ...callData.extractedData };
@@ -792,20 +792,13 @@ export async function getSmartAIResponse(callData) {
         }
         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-        // 📊 LLM RESPONSE LOGGING - See what LLM actually generated
-        console.log(`   🤖 [LLM RESPONSE] "${replyText || '[No text response]'}"`);
-        if (functionCalls && functionCalls.length > 0) {
-            console.log(`   🔧 [LLM WANTS TO CALL] ${functionCalls.length} function(s)`);
-        } else {
-            console.log(`   💬 [LLM MODE] Text response only (no function calls)`);
-        }
+
 
         // Validate before marking ready
         if (readyToSubmit) {
             const v = validateExtracted(merged);
             if (!v.valid) { 
                 readyToSubmit = false; 
-                console.warn(`⚠️ Not ready: ${v.reason}`); 
             }
         }
         
@@ -834,25 +827,30 @@ export async function getSmartAIResponse(callData) {
             }
         );
 
-        // If only function calls (no text), provide a default response
+        // If only function calls (no text), provide a contextual response
         // The actual response will be generated after function execution in voiceRoutes.js
-        const finalText = replyText || "Ji, bataiye.";
-
-        // 📊 FINAL OUTPUT LOGGING - What we're returning to the system
-        console.log(`   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-        console.log(`   📤 [FINAL OUTPUT]`);
-        console.log(`   💬 Text: "${finalText}"`);
-        console.log(`   🔧 Function Calls: ${functionCalls ? functionCalls.length : 0}`);
-        if (functionCalls && functionCalls.length > 0) {
-            functionCalls.forEach((fc, idx) => {
-                const args = JSON.parse(fc.function.arguments || '{}');
-                const argStr = Object.entries(args).map(([k, v]) => `${k}="${v}"`).join(', ');
-                console.log(`      ${idx + 1}. ${fc.function.name}(${argStr})`);
-            });
+        let finalText = replyText;
+        
+        if (!finalText && functionCalls && functionCalls.length > 0) {
+            // Generate contextual response based on function calls
+            const functionNames = functionCalls.map(fc => fc.function.name);
+            
+            if (functionNames.includes('capture_phone_number')) {
+                finalText = "Phone number note kar liya. Aur koi problem toh nahi machine mein?";
+            } else if (functionNames.includes('validate_phone_format')) {
+                finalText = "Phone number verify kar raha hun.";
+            } else if (functionNames.includes('capture_machine_number')) {
+                finalText = "Machine number note kar liya.";
+            } else if (functionNames.includes('final_confirmation')) {
+                finalText = "Complaint register kar raha hun.";
+            } else {
+                finalText = "Theek hai, process kar raha hun.";
+            }
+        } else if (!finalText) {
+            finalText = "Ji, bataiye.";
         }
-        console.log(`   📊 Ready to Submit: ${readyToSubmit}`);
-        console.log(`   ⏱️  Latency: ${latency}ms | Tokens: ${tokens}`);
-        console.log(`   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+
+
         
         
         return { 
@@ -861,12 +859,15 @@ export async function getSmartAIResponse(callData) {
             readyToSubmit, 
             tokens, 
             cost,
-            functionCalls: functionCalls || null // Include function calls if any
+            functionCalls: functionCalls || null, // Include function calls if any
+            kgFlowDirection: kgFlowDirection || null // Include KG flow direction for validation
         };
 
     } catch (err) {
         error = err.message;
         const latency = Date.now() - startTime;
+        
+        console.error(`❌ Azure OpenAI Error: ${err.message}`);
         
         // Log failed LLM usage
         serviceLogger.logLLM(
@@ -884,139 +885,16 @@ export async function getSmartAIResponse(callData) {
             }
         );
 
-        console.error("❌ [Azure OpenAI]", error);
+
         return {
             text: "Ji, bataiye.",
             extractedData: callData.extractedData || {},
             readyToSubmit: false,
             tokens: 0,
             cost: 0,
+            kgFlowDirection: null
         };
     }
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   ⚡ REGEX EXTRACTION
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-export function extractAllData(text, cur = {}) {
-    const ex = {};
-    const numberMap = {
-        "एक": "1", "दो": "2", "तीन": "3", "चार": "4", "पांच": "5", "पाँच": "5", "छह": "6", "सात": "7", "आठ": "8", "नौ": "9", "शून्य": "0",
-        "zero": "0", "one": "1", "two": "2", "three": "3", "four": "4", "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9",
-        "teen": "3", "char": "4", "paanch": "5", "chhe": "6", "saat": "7", "aath": "8", "nau": "9",
-        "ek": "1", "do": "2", "teen": "3", "chaar": "4", "paanch": "5", "chhe": "6", "saat": "7", "aath": "8", "nau": "9",
-    };
-    let normalizedText = text;
-    for (const [word, digit] of Object.entries(numberMap)) {
-        normalizedText = normalizedText.replace(new RegExp(`\\b${word}\\b`, "gi"), digit);
-    }
-    const lo = normalizedText.toLowerCase().replace(/[।\.\!\?]/g, " ").replace(/\s+/g, " ").trim();
-
-    // Skip hold phrases
-    if (/^(ek minute|ek second|ruko|ruk|dhundh|dekh raha|hold on|thoda|leke aata|bas|ok|haan|ha|acha|achha)\s*$/i.test(lo)) return {};
-
-    // ── Machine number (3-7 digits) ──────────────────────────────
-    if (!cur.machine_no) {
-        let noPhone = text.replace(/[6-9]\d{9}/g, '');
-        const digitsOnly = noPhone.replace(/[^0-9]/g, '');
-        for (let len = 7; len >= 3; len--) {
-            for (let i = 0; i <= digitsOnly.length - len; i++) {
-                const chunk = digitsOnly.slice(i, i + len);
-                if (/^[6-9]/.test(chunk) && digitsOnly.length >= 10) continue;
-                ex.machine_no = chunk;
-                break;
-            }
-            if (ex.machine_no) break;
-        }
-    }
-
-    // ── Phone (10 digit Indian) ───────────────────────────────────
-    if (!cur.customer_phone || !/^[6-9]\d{9}$/.test(cur.customer_phone)) {
-        const compact = text.replace(/[\s\-,।\.]/g, "");
-        const nums = compact.match(/\d+/g) || [];
-        for (const seq of nums) {
-            if (/^[6-9]\d{9}$/.test(seq)) { ex.customer_phone = seq; break; }
-            for (let i = 0; i <= seq.length - 10; i++) {
-                const ch = seq.slice(i, i + 10);
-                if (/^[6-9]\d{9}$/.test(ch)) { ex.customer_phone = ch; break; }
-            }
-            if (ex.customer_phone) break;
-        }
-    }
-
-    // ── City (Devanagari + English + Rajasthani variants) ─────────
-    if (!cur.city) {
-        const DEVA_MAP = {
-            "भीलवाड़ा": "BHILWARA", "बड़ी": "BHILWARA", "जयपुर": "JAIPUR", "अजमेर": "AJMER",
-            "अलवर": "ALWAR", "जोधपुर": "JODHPUR", "उदयपुर": "UDAIPUR",
-            "कोटा": "KOTA", "सीकर": "SIKAR", "बीकानेर": "BIKANER",
-            "टोंक": "TONK", "झुंझुनू": "JHUNJHUNU", "दौसा": "DAUSA",
-            "नागौर": "NAGAUR", "पाली": "PALI", "बाड़मेर": "BARMER",
-            "जैसलमेर": "JAISALMER", "चित्तौड़गढ़": "CHITTORGARH", "बूंदी": "BUNDI",
-            "बारां": "BARAN", "झालावाड़": "JHALAWAR", "राजसमंद": "RAJSAMAND",
-            "भरतपुर": "BHARATPUR", "धौलपुर": "DHOLPUR", "करौली": "KARAULI",
-            "सवाई माधोपुर": "SAWAI MADHOPUR", "डूंगरपुर": "DUNGARPUR",
-            "बांसवाड़ा": "BANSWARA", "प्रतापगढ़": "PRATAPGARH", "सिरोही": "SIROHI",
-            "जालोर": "JALOR", "नीम का थाना": "NEEM KA THANA", "चुरू": "CHURU",
-            "हनुमानगढ़": "HANUMANGARH", "गंगानगर": "GANGANAGAR",
-            "श्रीगंगानगर": "GANGANAGAR", "निम्बाहेड़ा": "NIMBAHERA",
-            "सुजानगढ़": "SUJANGARH", "कोटपूतली": "KOTPUTLI", "भिवाड़ी": "BHIWADI",
-            "रामगंज मंडी": "RAMGANJMANDI", "रामगंज": "RAMGANJMANDI",
-        };
-        for (const [d, l] of Object.entries(DEVA_MAP)) {
-            if (text.includes(d)) { ex.city = l; break; }
-        }
-        if (!ex.city) {
-            const sorted = [...SERVICE_CENTERS].sort((a, b) => b.city_name.length - a.city_name.length);
-            for (const c of sorted) {
-                if (lo.includes(c.city_name.toLowerCase())) { ex.city = c.city_name; break; }
-            }
-        }
-    }
-
-    // ── Machine status (with Rajasthani) ─────────────────────────
-    if (!cur.machine_status) {
-        const bkRx = /(band|khadi|khari|stop|ruk gayi|breakdown|बंद|खड़ी|chalu nahi|chalti nahi|start nahi|start nhi|nahi chal|padi hai|band padi|chal nhi rahi|chal nhi|nhi chal|nahi chalti|band padi hai|khadi padi|chal nai ryi|chaalti nai|chal nai)/;
-        const rwRx = /(chal rahi|chal rhi|running|chalu hai|dikkat|problem|चल रही|चालू है|chal ryi|chaalti hai)/;
-        const svRx = /(filter|filttar|filtar|service|oil change|tel badlo|seva|सर्विस|फिल्टर)/;
-        if (bkRx.test(lo) || bkRx.test(text)) ex.machine_status = "Breakdown";
-        else if (svRx.test(lo)) ex.machine_status = "Running With Problem";
-        else if (rwRx.test(lo) || rwRx.test(text)) ex.machine_status = "Running With Problem";
-    }
-
-    // ── Job location ──────────────────────────────────────────────
-    if (!cur.job_location) {
-        if (/(workshop|garage|वर्कशॉप|गैराज)/.test(lo)) ex.job_location = "Workshop";
-        else if (/(site|field|bahar|khet|sadak|onsite|साइट|खेत)/.test(lo)) ex.job_location = "Onsite";
-    }
-
-    // ── Complaint title (with Rajasthani variants) ────────────────
-    if (!cur.complaint_title) {
-        const mCtx = /(machine|jcb|start|chalu|engine|मशीन|इंजन)/.test(lo);
-        const ns = /(start nahi|start nhi|chalu nahi|chalu nhi|chalti nahi|chal nahi rahi|nahi chal rahi|चालू नहीं|स्टार्ट नहीं|नहीं चल|chal nai|start nai ho|chaalti nai)/.test(lo);
-        const bnd = /(band hai|band ho gayi|band pad|khari hai|बंद है|बंद हो|band padi|khadi padi)/.test(lo) && mCtx;
-
-        if (ns || bnd) ex.complaint_title = "Engine Not Starting";
-        else if (/(filter|filttar|filtar|service|servicing|seva|oil change|tel badlo|tel badalwana)/.test(lo)) ex.complaint_title = "Service/Filter Change";
-        else if (/(dhuan|dhua|smoke|dhuen|dhuwaan)/.test(lo)) ex.complaint_title = "Engine Smoke";
-        else if (/(garam|dhak|overheat|ubhal|tapta|tapt gyi|bahut garam|dhak gyi)/.test(lo)) ex.complaint_title = "Engine Overheating";
-        // IMPROVED: Added more oil leakage patterns including "oli", "haveli", "oil kor", etc.
-        else if (/(tel nikal|oil leak|rissa|risso|tel nikal ryo|oil aa raha|tel aa raha|riss ryo|oli|haveli|haweli|oil kor|oli kor|tel kor|oil nikal|tel leak|oil leakage)/.test(lo)) ex.complaint_title = "Oil Leakage";
-        else if (/(hydraulic|hydraulik|hydro|ailak|cylinder|bucket|boom|jack|dipper|bucket nai uthta)/.test(lo)) ex.complaint_title = "Hydraulic System Failure";
-        else if (/(race nahi|race nai|ras nahi|ras nai|accelerator|gas nahi|gas nai|pickup nahi|gas nai leti)/.test(lo)) ex.complaint_title = "Accelerator Problem";
-        else if (/(ac nahi|ac nai|hawa nahi|thanda nahi|ac band|ac kharab|cooling nahi|thando nai)/.test(lo)) ex.complaint_title = "AC Not Working";
-        else if (/(brake nahi|brake nhi|brake nai|rokti nahi|brake fail|brake kharab|rokti nai)/.test(lo)) ex.complaint_title = "Brake Failure";
-        else if (/(bijli nahi|headlight|bulb|electrical|light nahi|battery|bijli nai)/.test(lo)) ex.complaint_title = "Electrical Problem";
-        else if (/(tire|tyre|pankchar|puncture|टायर|flat)/.test(lo)) ex.complaint_title = "Tire Problem";
-        else if (/(khatakhat|khatak|thokta|awaaz aa rhi|aawaz|vibration|noise|khad khad|aavaaz aa ri|khatak aa ri)/.test(lo)) ex.complaint_title = "Abnormal Noise";
-        else if (/(steering|स्टीयरिंग|steering kharab)/.test(lo)) ex.complaint_title = "Steering Problem";
-        else if (/(gear|transmission|गियर|gear nahi|gear slip)/.test(lo)) ex.complaint_title = "Transmission Problem";
-        else if (/(coolant|paani nikal|water leak|radiator|paani)/.test(lo)) ex.complaint_title = "Coolant Leakage";
-        else if (/(boom|arm nahi|dipper nahi|arm nai uthta)/.test(lo)) ex.complaint_title = "Boom/Arm Failure";
-        else if (/(turbo|turbocharger|black smoke)/.test(lo)) ex.complaint_title = "Turbocharger Issue";
-    }
-
-    return ex;
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1075,6 +953,83 @@ export function sanitizeExtractedData(data) {
     if (c.machine_no && !/^\d{3,7}$/.test(c.machine_no)) c.machine_no = null;
     return c;
 }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   🔢 FUZZY MACHINE NUMBER MATCHING
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+export const COMMON_MACHINE_NUMBERS = ["3115725", "1849038", "3305447"];
+
+/**
+ * Fuzzy match a machine number against a list of common/known numbers.
+ * Handles common STT errors and partial matches.
+ * @param {string} input - The raw machine number from STT or LLM
+ * @param {Array} list - List of valid numbers to check against
+ * @returns {string|null} The matched number or null if no strong match
+ */
+export function fuzzyMatchMachineNumber(input, list = COMMON_MACHINE_NUMBERS) {
+    if (!input) return null;
+    
+    // Clean input: only digits
+    const cleanInput = String(input).replace(/\D/g, '');
+    if (!cleanInput || cleanInput.length < 3) return null;
+
+    // 1. Exact match
+    if (list.includes(cleanInput)) return cleanInput;
+
+    // 2. Similarity match
+    let bestMatch = null;
+    let maxSimilarity = 0;
+
+    for (const target of list) {
+        // Simple similarity score based on character overlap and length
+        let matches = 0;
+        
+        // Check for substring match (e.g. customer missed last digit)
+        if (target.includes(cleanInput) || cleanInput.includes(target)) {
+            const overlapLen = Math.min(cleanInput.length, target.length);
+            const totalLen = Math.max(cleanInput.length, target.length);
+            const similarity = overlapLen / totalLen;
+            
+            if (similarity > maxSimilarity) {
+                maxSimilarity = similarity;
+                bestMatch = target;
+            }
+            continue;
+        }
+
+        // Check digit-by-digit overlap
+        const minLen = Math.min(cleanInput.length, target.length);
+        const maxLen = Math.max(cleanInput.length, target.length);
+        
+        for (let i = 0; i < minLen; i++) {
+            if (cleanInput[i] === target[i]) matches++;
+        }
+        
+        // Also check suffix match (common for machine numbers)
+        let suffixMatches = 0;
+        for (let i = 1; i <= minLen; i++) {
+            if (cleanInput[cleanInput.length - i] === target[target.length - i]) suffixMatches++;
+        }
+
+        const similarity = Math.max(matches, suffixMatches) / maxLen;
+        
+        if (similarity > maxSimilarity) {
+            maxSimilarity = similarity;
+            bestMatch = target;
+        }
+    }
+
+    // If similarity is high enough (e.g. 80%+), return the match
+    // For 7 digits, 80% is 6+ digits matching or 5 digits matching + same length
+    if (maxSimilarity >= 0.8) {
+        console.log(`   🎯 [FUZZY MATCH] Input "${input}" (cleaned: "${cleanInput}") → Match "${bestMatch}" (Score: ${maxSimilarity.toFixed(2)})`);
+        return bestMatch;
+    }
+
+    return null;
+}
+
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //   🔄 MIGRATION NOTE

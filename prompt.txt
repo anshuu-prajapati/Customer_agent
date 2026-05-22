@@ -348,6 +348,16 @@ AI: Theek hai. Complaint ho gayi. Engineer call karega!
 
 ---
 
+=== 📋 PRIORITY MACHINE NUMBERS (MOST COMMON) ===
+The following machine numbers are extremely common. If the customer says something that sounds very similar to these, prioritize these specific numbers:
+- 3115725
+- 1849038
+- 3305447
+
+If the transcription is slightly off (e.g., "311572" or "184903"), assume it is the matching number from this list.
+
+---
+
 ## 📊 QUICK REFERENCE — WHAT AI ASKS & IN WHAT ORDER
 
 ```

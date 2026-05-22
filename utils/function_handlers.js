@@ -10,7 +10,8 @@
    Phase 4: Validation Functions
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-import { matchServiceCenter } from './ai.js';
+import { matchServiceCenter, fuzzyMatchMachineNumber } from './ai.js';
+import { logKGOperation } from './clean_debugger.js';
 import axios from 'axios';
 
 // API configuration (same as voiceRoutes.js)
@@ -27,9 +28,6 @@ const API_HEADERS = { "Content-Type": "application/json" };
 export async function executeFunctionCall(functionCall, callData) {
     const { name, arguments: argsString } = functionCall;
     
-    console.log(`   🔧 [FUNCTION CALL] ${name}`);
-    console.log(`   📝 Arguments: ${argsString}`);
-    
     try {
         const args = JSON.parse(argsString);
         
@@ -37,6 +35,9 @@ export async function executeFunctionCall(functionCall, callData) {
             // Phase 1: Core Data Capture
             case 'capture_machine_number':
                 return await handleCaptureMachineNumber(args, callData);
+            
+            case 'confirm_machine_number':
+                return await handleConfirmMachineNumber(args, callData);
             
             case 'capture_complaint':
                 return await handleCaptureComplaint(args, callData);
@@ -67,12 +68,6 @@ export async function executeFunctionCall(functionCall, callData) {
                 return await handleUpdateMachineStatus(args, callData);
             
             // Phase 3: Confirmations
-            case 'confirm_phone_number':
-                return await handleConfirmPhoneNumber(args, callData);
-            
-            case 'provide_alternate_phone':
-                return await handleProvideAlternatePhone(args, callData);
-            
             case 'confirm_city_and_branch':
                 return await handleConfirmCityAndBranch(args, callData);
             
@@ -100,14 +95,13 @@ export async function executeFunctionCall(functionCall, callData) {
                 return await handleSubmitComplaint(args, callData);
             
             default:
-                console.warn(`   ⚠️  Unknown function: ${name}`);
                 return {
                     success: false,
                     message: `Unknown function: ${name}`
                 };
         }
     } catch (error) {
-        console.error(`   ❌ [FUNCTION ERROR] ${name}:`, error.message);
+        console.error(`❌ Function ${name} error: ${error.message}`);
         return {
             success: false,
             message: `Error executing ${name}: ${error.message}`
@@ -121,26 +115,52 @@ export async function executeFunctionCall(functionCall, callData) {
 async function handleCaptureMachineNumber(args, callData) {
     const { machine_no } = args;
     
+    // Prevent calling capture_machine_number during confirmation state
+    if (callData.awaitingMachineNumberConfirm || callData.pendingMachineNumberConfirm) {
+        return {
+            success: false,
+            message: `Machine number is already captured and awaiting confirmation. Use confirm_machine_number function instead.`,
+            error: 'wrong_function_for_state',
+            correct_function: 'confirm_machine_number',
+            current_machine_no: callData.extractedData.machine_no
+        };
+    }
+    
     // Clean machine number (remove spaces, dashes, and other non-digit characters except digits)
-    const cleanMachineNo = machine_no.replace(/[\s\-,।\.]/g, '');
+    let cleanMachineNo = machine_no.replace(/[\s\-,।\.]/g, '');
+    
+    // Check against priority numbers
+    const fuzzyMatch = fuzzyMatchMachineNumber(cleanMachineNo);
+    if (fuzzyMatch) {
+        cleanMachineNo = fuzzyMatch;
+    }
     
     // Validate format (3-7 digits)
     if (!/^\d{3,7}$/.test(cleanMachineNo)) {
-        console.warn(`   ⚠️  Invalid machine number format: ${machine_no} (cleaned: ${cleanMachineNo})`);
         return {
             success: false,
             message: `Invalid machine number format. Must be 3-7 digits. Got: ${machine_no}`
         };
     }
     
-    // Store cleaned machine number in extractedData
-    callData.extractedData.machine_no = cleanMachineNo;
+    // Check if regex extraction already captured a LONGER/BETTER number
+    const existingNumber = callData.extractedData.machine_no;
+    if (existingNumber && existingNumber.length > cleanMachineNo.length) {
+        // Use the longer number from regex extraction
+        callData.extractedData.machine_no = existingNumber;
+        cleanMachineNo = existingNumber;
+    } else {
+        // Store cleaned machine number in extractedData
+        callData.extractedData.machine_no = cleanMachineNo;
+    }
     
-    console.log(`   ✅ [CAPTURED] machine_no: ${cleanMachineNo}${machine_no !== cleanMachineNo ? ` (cleaned from: ${machine_no})` : ''}`);
+    // Set flag to trigger confirmation
+    callData.pendingMachineNumberConfirm = true;
     
     return {
         success: true,
-        message: `Machine number ${cleanMachineNo} captured successfully. Will validate against database.`
+        message: `Machine number ${cleanMachineNo} captured successfully. Will repeat for confirmation.`,
+        needsConfirmation: true
     };
 }
 
@@ -153,7 +173,30 @@ async function handleCaptureComplaint(args, callData) {
     // Store complaint title
     if (!callData.extractedData.complaint_title) {
         callData.extractedData.complaint_title = complaint_title;
-        console.log(`   ✅ [CAPTURED] complaint_title: ${complaint_title}`);
+        
+        // KG INTEGRATION: Analyze complaint intent
+        try {
+            const kgService = await import('./kg_service.js');
+            const intentAnalysis = await kgService.default.analyzeIntent(complaint_title);
+            
+            if (intentAnalysis.success) {
+                // Store KG analysis for later use
+                callData.kgIntentAnalysis = intentAnalysis;
+                
+                // Log KG operation
+                logKGOperation('Intent Analysis', true, {
+                    intent: intentAnalysis.intent,
+                    confidence: intentAnalysis.confidence,
+                    tokenSavings: Math.round(intentAnalysis.token_reduction * 300),
+                    specialist: intentAnalysis.specialist
+                });
+                
+                // Log KG usage
+                await kgService.default.logKGUsage('complaint_intent_analysis', true, intentAnalysis.token_reduction * 300);
+            }
+        } catch (error) {
+            logKGOperation('Intent Analysis', false, { error: error.message });
+        }
     }
     
     // Store complaint details if provided
@@ -173,12 +216,12 @@ async function handleCaptureComplaint(args, callData) {
         }
         
         callData.extractedData.complaint_details = combined.join('; ');
-        console.log(`   ✅ [CAPTURED] complaint_details: ${callData.extractedData.complaint_details}`);
     }
     
     return {
         success: true,
-        message: `Complaint captured: ${complaint_title}${complaint_details ? ' with additional details' : ''}`
+        message: `Complaint captured: ${complaint_title}${complaint_details ? ' with additional details' : ''}`,
+        kg_enhanced: !!callData.kgIntentAnalysis
     };
 }
 
@@ -190,7 +233,6 @@ async function handleCaptureMachineStatus(args, callData) {
     
     // Validate enum value
     if (!['Breakdown', 'Running With Problem'].includes(machine_status)) {
-        console.warn(`   ⚠️  Invalid machine status: ${machine_status}`);
         return {
             success: false,
             message: `Invalid machine status. Must be 'Breakdown' or 'Running With Problem'. Got: ${machine_status}`
@@ -200,8 +242,6 @@ async function handleCaptureMachineStatus(args, callData) {
     // Store in extractedData
     callData.extractedData.machine_status = machine_status;
     
-    console.log(`   ✅ [CAPTURED] machine_status: ${machine_status}`);
-    
     return {
         success: true,
         message: `Machine status captured: ${machine_status}`
@@ -210,6 +250,7 @@ async function handleCaptureMachineStatus(args, callData) {
 
 /**
  * Handle capture_city function
+ * PHASE 2 KG INTEGRATION: Enhanced with specialist routing
  */
 async function handleCaptureCity(args, callData) {
     const { city } = args;
@@ -226,17 +267,44 @@ async function handleCaptureCity(args, callData) {
         callData.extractedData.lat = matched.lat;
         callData.extractedData.lng = matched.lng;
         
-        console.log(`   ✅ [CAPTURED] city: ${matched.city_name} → branch: ${matched.branch_name}`);
+        // KG INTEGRATION: Specialist Routing
+        try {
+            const kgService = await import('./kg_service.js');
+            
+            // Get specialist routing based on problem type + customer city
+            if (callData.extractedData.complaint_title) {
+                const specialistRouting = await kgService.default.getSpecialistRouting(
+                    callData.extractedData.complaint_title,
+                    matched.city_name
+                );
+                
+                if (specialistRouting.success) {
+                    // Store specialist routing for later use
+                    callData.kgSpecialistRouting = specialistRouting;
+                    
+                    // Log KG operation
+                    logKGOperation('Specialist Routing', true, {
+                        specialist: specialistRouting.specialist_type,
+                        priority: specialistRouting.priority_level,
+                        tokenSavings: 120
+                    });
+                    
+                    // Log KG usage
+                    await kgService.default.logKGUsage('specialist_routing', true, 120);
+                }
+            }
+        } catch (error) {
+            logKGOperation('Specialist Routing', false, { error: error.message });
+        }
         
         return {
             success: true,
-            message: `City captured: ${matched.city_name}. Nearest branch: ${matched.branch_name}`
+            message: `City captured: ${matched.city_name}. Nearest branch: ${matched.branch_name}`,
+            kg_enhanced: !!callData.kgSpecialistRouting
         };
     } else {
         // Store raw city even if not matched (will ask for confirmation)
         callData.extractedData.city = city.toUpperCase();
-        
-        console.warn(`   ⚠️  City not matched in service centers: ${city}`);
         
         return {
             success: false,
@@ -256,7 +324,6 @@ async function handleCapturePhoneNumber(args, callData) {
     
     // Validate format (10 digits starting with 6-9)
     if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
-        console.warn(`   ⚠️  Invalid phone number format: ${customer_phone} (cleaned: ${cleanPhone})`);
         return {
             success: false,
             message: `Invalid phone number format. Must be 10 digits starting with 6, 7, 8, or 9. Got: ${customer_phone}`
@@ -266,12 +333,44 @@ async function handleCapturePhoneNumber(args, callData) {
     // Store cleaned phone number in extractedData
     callData.extractedData.customer_phone = cleanPhone;
     
-    console.log(`   ✅ [CAPTURED] customer_phone: ${cleanPhone}${customer_phone !== cleanPhone ? ` (cleaned from: ${customer_phone})` : ''}`);
-    
     return {
         success: true,
         message: `Phone number ${cleanPhone} captured successfully.`
     };
+}
+
+/**
+ * Handle confirm_machine_number function
+ */
+async function handleConfirmMachineNumber(args, callData) {
+    const { confirmed } = args;
+    
+    if (confirmed) {
+        // Customer confirmed the machine number - proceed to validation
+        
+        // Clear confirmation flags
+        callData.awaitingMachineNumberConfirm = false;
+        callData.pendingMachineNumberConfirm = false;
+        
+        return {
+            success: true,
+            message: `Machine number ${callData.extractedData.machine_no} confirmed. Will validate against database.`,
+            needsValidation: true
+        };
+    } else {
+        // Customer wants to change machine number
+        
+        // Clear machine number and flags
+        callData.extractedData.machine_no = null;
+        callData.awaitingMachineNumberConfirm = false;
+        callData.pendingMachineNumberConfirm = false;
+        
+        return {
+            success: true,
+            message: `Customer wants to change machine number. Asking for correct number.`,
+            needsRecapture: true
+        };
+    }
 }
 
 
@@ -286,12 +385,9 @@ async function handleCapturePhoneNumber(args, callData) {
 async function handleUpdateMachineNumber(args, callData) {
     const { new_machine_no, reason } = args;
     
-    // PREVENT REDUNDANT UPDATES: If machine is already validated and we're in phone confirmation flow, ignore update
+    // PREVENT REDUNDANT UPDATES: If machine is already validated and we're in confirmation flow, ignore update
     if (callData.customerData && callData.machineValidated && 
-        (callData.awaitingPhoneConfirm || callData.pendingPhoneConfirm || callData.awaitingMachineUpdateConfirm)) {
-        console.log(`   ⚠️  [UPDATE BLOCKED] Machine already validated and in confirmation flow - ignoring redundant update`);
-        console.log(`   📋 Current machine: ${callData.extractedData.machine_no} (validated)`);
-        console.log(`   📋 Customer: ${callData.customerData.name}`);
+        (callData.awaitingMachineUpdateConfirm)) {
         return {
             success: true,
             alreadyValidated: true,
@@ -301,12 +397,9 @@ async function handleUpdateMachineNumber(args, callData) {
     
     // FIRST CALL: No new number provided - ask for it
     if (!new_machine_no) {
-        console.log(`   📥 [UPDATE REQUEST] Machine number - asking for new value`);
-        
         // Save current state before entering update flow
         if (!callData.stateBeforeUpdate) {
             callData.stateBeforeUpdate = callData.stateTracking?.currentState || 'collect_complaint';
-            console.log(`   💾 [UPDATE FLOW] Saved state before update: ${callData.stateBeforeUpdate}`);
         }
         
         // Enter update flow
@@ -327,14 +420,16 @@ async function handleUpdateMachineNumber(args, callData) {
     const oldValue = callData.extractedData.machine_no;
     
     // Clean machine number (remove spaces, dashes, and other non-digit characters)
-    const cleanMachineNo = new_machine_no.replace(/[\s\-,।\.]/g, '');
+    let cleanMachineNo = new_machine_no.replace(/[\s\-,।\.]/g, '');
     
-    // CRITICAL: If machine is validated and new number is SHORTER than old (partial extraction), block it
+    // Check against priority numbers
+    const fuzzyMatch = fuzzyMatchMachineNumber(cleanMachineNo);
+    if (fuzzyMatch) {
+        cleanMachineNo = fuzzyMatch;
+    }
+    
+    // If machine is validated and new number is SHORTER than old (partial extraction), block it
     if (callData.customerData && callData.machineValidated && cleanMachineNo.length < oldValue.length) {
-        console.log(`   ⚠️  [UPDATE BLOCKED] Partial number detected - likely speech recognition issue`);
-        console.log(`   📋 Current validated: ${oldValue} (${oldValue.length} digits)`);
-        console.log(`   📋 Attempted update: ${cleanMachineNo} (${cleanMachineNo.length} digits)`);
-        console.log(`   🚫 Blocking partial extraction - keeping validated number`);
         return {
             success: true,
             alreadyValidated: true,
@@ -344,8 +439,6 @@ async function handleUpdateMachineNumber(args, callData) {
     
     // If new number is same as current validated number, don't update
     if (cleanMachineNo === oldValue && callData.customerData && callData.machineValidated) {
-        console.log(`   ⚠️  [UPDATE BLOCKED] New number same as current validated number - ignoring`);
-        console.log(`   📋 Current machine: ${oldValue} (validated)`);
         return {
             success: true,
             alreadyValidated: true,
@@ -355,7 +448,6 @@ async function handleUpdateMachineNumber(args, callData) {
     
     // Validate format (3-7 digits)
     if (!/^\d{3,7}$/.test(cleanMachineNo)) {
-        console.warn(`   ⚠️  Invalid machine number format: ${new_machine_no} (cleaned: ${cleanMachineNo})`);
         return {
             success: false,
             message: `Invalid machine number format. Must be 3-7 digits. Got: ${new_machine_no}`
@@ -367,13 +459,9 @@ async function handleUpdateMachineNumber(args, callData) {
     
     // Clear customer data if machine number changed (need to re-validate)
     if (oldValue !== cleanMachineNo && callData.customerData) {
-        console.log(`   🔄 [UPDATE] Machine number changed, clearing customer data for re-validation`);
         callData.customerData = null;
         callData.machineValidated = false;
     }
-    
-    console.log(`   🔄 [UPDATE] machine_no: ${oldValue} → ${cleanMachineNo}${new_machine_no !== cleanMachineNo ? ` (cleaned from: ${new_machine_no})` : ''}`);
-    if (reason) console.log(`   📝 Reason: ${reason}`);
     
     // Mark that we're awaiting validation
     callData.awaitingMachineUpdateInput = false;
@@ -397,7 +485,6 @@ async function handleUpdateComplaint(args, callData) {
     
     // FIRST CALL: No new complaint provided - ask for it
     if (!new_complaint_title) {
-        console.log(`   📥 [UPDATE REQUEST] Complaint - asking for new value`);
         return {
             success: false,
             needsInput: true,
@@ -413,14 +500,11 @@ async function handleUpdateComplaint(args, callData) {
     
     // Update complaint title
     callData.extractedData.complaint_title = new_complaint_title;
-    console.log(`   🔄 [UPDATE] complaint_title: ${oldTitle} → ${new_complaint_title}`);
     
     // Update complaint details if provided
     if (new_complaint_details) {
         callData.extractedData.complaint_details = new_complaint_details;
-        console.log(`   🔄 [UPDATE] complaint_details: ${oldDetails || 'none'} → ${new_complaint_details}`);
     }
-    
     if (reason) console.log(`   📝 Reason: ${reason}`);
     
     return {
@@ -439,7 +523,6 @@ async function handleUpdateCity(args, callData) {
     
     // FIRST CALL: No new city provided - ask for it
     if (!new_city) {
-        console.log(`   📥 [UPDATE REQUEST] City - asking for new value`);
         return {
             success: false,
             needsInput: true,
@@ -464,10 +547,6 @@ async function handleUpdateCity(args, callData) {
         callData.extractedData.lat = matched.lat;
         callData.extractedData.lng = matched.lng;
         
-        console.log(`   🔄 [UPDATE] city: ${oldCity} → ${matched.city_name}`);
-        console.log(`   🔄 [UPDATE] branch: ${matched.branch_name}, city_id: ${matched.branch_code}`);
-        if (reason) console.log(`   📝 Reason: ${reason}`);
-        
         return {
             success: true,
             continueWithState: true, // Pass execution back to current state
@@ -476,9 +555,6 @@ async function handleUpdateCity(args, callData) {
     } else {
         // Store raw city even if not matched
         callData.extractedData.city = new_city.toUpperCase();
-        
-        console.warn(`   ⚠️  City not matched in service centers: ${new_city}`);
-        console.log(`   🔄 [UPDATE] city: ${oldCity} → ${new_city.toUpperCase()} (not matched)`);
         
         return {
             success: false,
@@ -496,7 +572,6 @@ async function handleUpdatePhoneNumber(args, callData) {
     
     // FIRST CALL: No new phone provided - ask for it
     if (!new_customer_phone) {
-        console.log(`   📥 [UPDATE REQUEST] Phone number - asking for new value`);
         return {
             success: false,
             needsInput: true,
@@ -514,7 +589,6 @@ async function handleUpdatePhoneNumber(args, callData) {
     
     // Validate format (10 digits starting with 6-9)
     if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
-        console.warn(`   ⚠️  Invalid phone number format: ${new_customer_phone} (cleaned: ${cleanPhone})`);
         return {
             success: false,
             message: `Invalid phone number format. Must be 10 digits starting with 6, 7, 8, or 9. Got: ${new_customer_phone}`
@@ -523,9 +597,6 @@ async function handleUpdatePhoneNumber(args, callData) {
     
     // Update the field with cleaned phone
     callData.extractedData.customer_phone = cleanPhone;
-    
-    console.log(`   🔄 [UPDATE] customer_phone: ${oldPhone} → ${cleanPhone}${new_customer_phone !== cleanPhone ? ` (cleaned from: ${new_customer_phone})` : ''}`);
-    if (reason) console.log(`   📝 Reason: ${reason}`);
     
     return {
         success: true,
@@ -543,7 +614,6 @@ async function handleUpdateMachineStatus(args, callData) {
     
     // FIRST CALL: No new status provided - ask for it
     if (!new_machine_status) {
-        console.log(`   📥 [UPDATE REQUEST] Machine status - asking for new value`);
         return {
             success: false,
             needsInput: true,
@@ -582,89 +652,6 @@ async function handleUpdateMachineStatus(args, callData) {
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    ✅ PHASE 3: CONFIRMATION FUNCTIONS
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-
-/**
- * Handle confirm_phone_number function
- */
-async function handleConfirmPhoneNumber(args, callData) {
-    const { confirmed, registered_phone } = args;
-    
-    console.log(`   ✅ [CONFIRM] Phone confirmation: ${confirmed ? 'ACCEPTED' : 'REJECTED'}`);
-    
-    if (confirmed) {
-        // Customer confirmed the registered phone
-        if (callData.customerData?.phone) {
-            callData.extractedData.customer_phone = callData.customerData.phone;
-            console.log(`   ✅ [CONFIRM] Phone confirmed: ${callData.customerData.phone}`);
-        }
-        
-        // Clear confirmation flags
-        callData.awaitingPhoneConfirm = false;
-        callData.pendingPhoneConfirm = false;
-        
-        return {
-            success: true,
-            message: `Phone number confirmed: ${callData.customerData?.phone || registered_phone}`
-        };
-    } else {
-        // Customer wants to change phone
-        console.log(`   🔄 [CONFIRM] Customer wants to change phone number`);
-        
-        // Set flag to await alternate phone
-        callData.awaitingAlternatePhone = true;
-        callData.awaitingPhoneConfirm = false;
-        callData.pendingPhoneConfirm = false;
-        
-        return {
-            success: true,
-            message: `Customer wants to change phone number. Asking for alternate phone.`
-        };
-    }
-}
-
-/**
- * Handle provide_alternate_phone function
- */
-async function handleProvideAlternatePhone(args, callData) {
-    const { alternate_phone, keep_both } = args;
-    
-    // Clean phone number (remove spaces, dashes)
-    const cleanPhone = alternate_phone.replace(/[\s\-]/g, '');
-    
-    // Validate format (10 digits starting with 6-9)
-    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
-        console.warn(`   ⚠️  Invalid alternate phone format: ${alternate_phone}`);
-        return {
-            success: false,
-            message: `Invalid phone number format. Must be 10 digits starting with 6, 7, 8, or 9. Got: ${alternate_phone}`
-        };
-    }
-    
-    // Store alternate phone
-    if (keep_both && callData.customerData?.phone) {
-        // Keep both registered and alternate
-        const originalPhone = callData.customerData.phone;
-        if (originalPhone !== cleanPhone) {
-            callData.extractedData.customer_phone = `${originalPhone}, ${cleanPhone}`;
-            console.log(`   ✅ [ALTERNATE] Both phones saved: ${originalPhone}, ${cleanPhone}`);
-        } else {
-            callData.extractedData.customer_phone = cleanPhone;
-            console.log(`   ✅ [ALTERNATE] Same phone provided: ${cleanPhone}`);
-        }
-    } else {
-        // Only alternate phone
-        callData.extractedData.customer_phone = cleanPhone;
-        console.log(`   ✅ [ALTERNATE] Alternate phone saved: ${cleanPhone}`);
-    }
-    
-    // Clear flags
-    callData.awaitingAlternatePhone = false;
-    
-    return {
-        success: true,
-        message: `Alternate phone number ${cleanPhone} saved successfully.`
-    };
-}
 
 /**
  * Handle confirm_city_and_branch function
@@ -712,6 +699,7 @@ async function handleConfirmCityAndBranch(args, callData) {
 
 /**
  * Handle final_confirmation function
+ * PHASE 2 KG INTEGRATION: Enhanced with flow shortcuts and optimization data
  */
 async function handleFinalConfirmation(args, callData) {
     const { confirmed, additional_complaints, action } = args;
@@ -765,6 +753,57 @@ async function handleFinalConfirmation(args, callData) {
         // Customer confirmed to save/submit complaint
         console.log(`   ✅ [FINAL CONFIRM] Customer confirmed - ready to submit`);
         
+        // 🧠 PHASE 2 KG INTEGRATION: Apply Flow Shortcuts
+        try {
+            const kgService = await import('./kg_service.js');
+            
+            // Check if we can apply any flow shortcuts based on KG analysis
+            let flowShortcuts = [];
+            
+            // Model-specific shortcuts
+            if (callData.kgModelOptimization && callData.kgModelOptimization.fast_track_enabled) {
+                flowShortcuts.push({
+                    type: 'model_optimization',
+                    description: `${callData.customerData.model} model-specific handling`,
+                    time_saved: '15-20 minutes'
+                });
+            }
+            
+            // Repeat customer shortcuts
+            if (callData.kgRepeatCustomer && callData.kgRepeatCustomer.fast_track_enabled) {
+                flowShortcuts.push({
+                    type: 'repeat_customer',
+                    description: `Repeat customer with ${callData.kgRepeatCustomer.previous_complaints} previous complaints`,
+                    time_saved: '10-15 minutes'
+                });
+            }
+            
+            // Specialist routing shortcuts
+            if (callData.kgSpecialistRouting && callData.kgSpecialistRouting.priority_level === 'high') {
+                flowShortcuts.push({
+                    type: 'specialist_routing',
+                    description: `${callData.kgSpecialistRouting.specialist_type} specialist pre-assigned`,
+                    time_saved: callData.kgSpecialistRouting.estimated_resolution_time
+                });
+            }
+            
+            if (flowShortcuts.length > 0) {
+                console.log(`   ⚡ [KG SHORTCUTS] Applied ${flowShortcuts.length} flow optimization(s)`);
+                flowShortcuts.forEach((shortcut, idx) => {
+                    console.log(`      ${idx + 1}. ${shortcut.type}: ${shortcut.description} (saves ${shortcut.time_saved})`);
+                });
+                
+                // Store shortcuts for submission
+                callData.kgFlowShortcuts = flowShortcuts;
+                
+                // Log KG usage
+                await kgService.default.logKGUsage('flow_shortcuts', true, 200);
+            }
+            
+        } catch (error) {
+            console.warn(`   ⚠️ [KG SHORTCUTS] Flow shortcuts failed: ${error.message}`);
+        }
+        
         // Clear final confirmation flag and set ready to submit
         callData.awaitingFinalConfirm = false;
         callData.readyToSubmit = true; // NEW: Ensure flag is set for the route handler
@@ -773,7 +812,8 @@ async function handleFinalConfirmation(args, callData) {
             success: true,
             message: `Final confirmation received. Ready to submit complaint.`,
             action: 'submit',
-            ready_to_submit: true
+            ready_to_submit: true,
+            kg_enhanced: !!(callData.kgFlowShortcuts && callData.kgFlowShortcuts.length > 0)
         };
     }
     
@@ -827,6 +867,7 @@ async function validateMachineNumberAPI(machineNo) {
 
 /**
  * Handle validate_machine_number function
+ * PHASE 2 KG INTEGRATION: Enhanced with model detection and flow optimization
  */
 async function handleValidateMachineNumber(args, callData) {
     const { machine_no } = args;
@@ -856,14 +897,68 @@ async function handleValidateMachineNumber(args, callData) {
         callData.extractedData.customer_name = result.data.name;
         callData.machineNumberAttempts = 0; // Reset attempts on success
         
-        // Set flag for phone confirmation
-        callData.pendingPhoneConfirm = true;
+        // 🧠 PHASE 2 KG INTEGRATION: Machine Model Detection
+        try {
+            const kgService = await import('./kg_service.js');
+            
+            // Query KG for model-specific optimization
+            const modelOptimization = await kgService.default.getModelOptimization(result.data.model);
+            
+            if (modelOptimization.success) {
+                console.log(`   🧠 [KG MODEL] ${result.data.model} optimization found`);
+                console.log(`   🎯 [KG MODEL] Common issues: ${modelOptimization.common_issues.join(', ')}`);
+                console.log(`   ⚡ [KG MODEL] Fast-track available: ${modelOptimization.fast_track_enabled}`);
+                
+                // Store model optimization for later use
+                callData.kgModelOptimization = modelOptimization;
+                
+                // Log KG operation
+                logKGOperation('Model Optimization', true, {
+                    model: result.data.model,
+                    fastTrack: modelOptimization.fast_track_enabled,
+                    tokenSavings: 150,
+                    timing: Date.now() - startTime
+                });
+                
+                // Log KG usage
+                await kgService.default.logKGUsage('model_optimization', true, 150);
+            }
+            
+            // Check for repeat customer (phone number recognition)
+            const repeatCustomerCheck = await kgService.default.detectRepeatCustomer(result.data.phone);
+            
+            if (repeatCustomerCheck.success && repeatCustomerCheck.is_repeat) {
+                console.log(`   🔄 [KG REPEAT] Customer detected: ${repeatCustomerCheck.previous_complaints} previous complaints`);
+                console.log(`   ⚡ [KG REPEAT] Fast-track enabled: ${repeatCustomerCheck.fast_track_enabled}`);
+                
+                // Store repeat customer info
+                callData.kgRepeatCustomer = repeatCustomerCheck;
+                
+                // Log KG operation
+                logKGOperation('Repeat Customer Detection', true, {
+                    previousComplaints: repeatCustomerCheck.previous_complaints,
+                    fastTrack: repeatCustomerCheck.fast_track_enabled,
+                    tokenSavings: 200
+                });
+                
+                // Log KG usage
+                await kgService.default.logKGUsage('repeat_customer_detection', true, 100);
+            }
+            
+        } catch (error) {
+            console.warn(`   ⚠️ [KG MODEL] Model optimization failed: ${error.message}`);
+            logKGOperation('Model/Repeat Customer Detection', false, { error: error.message });
+        }
+        
+        // REMOVED: Phone confirmation logic - user-provided phone takes priority
+        // No longer set pendingPhoneConfirm flag
         
         return {
             success: true,
             message: `Machine number ${machine_no} validated successfully. Customer: ${result.data.name}, City: ${result.data.city}, Model: ${result.data.model}`,
             validation_result: 'valid',
-            customer_data: result.data
+            customer_data: result.data,
+            kg_enhanced: !!(callData.kgModelOptimization || callData.kgRepeatCustomer)
         };
     } else {
         // Machine not found in database
@@ -893,12 +988,22 @@ async function handleValidatePhoneFormat(args, callData) {
     
     console.log(`   🔍 [VALIDATE] Validating phone format: ${phone_number}`);
     
-    // Clean phone number (remove spaces, dashes)
-    const cleanPhone = phone_number.replace(/[\s\-]/g, '');
+    // CRITICAL FIX: Use cleaned phone number from extractedData if available
+    // This prevents validation of raw input like "82903237, 58" when we already have "8290323758"
+    let phoneToValidate = phone_number;
+    
+    if (callData.extractedData.customer_phone && 
+        callData.extractedData.customer_phone !== phone_number) {
+        console.log(`   🔧 [VALIDATE] Using cleaned phone from extractedData: ${callData.extractedData.customer_phone} instead of raw input: ${phone_number}`);
+        phoneToValidate = callData.extractedData.customer_phone;
+    }
+    
+    // Clean phone number (remove spaces, dashes, commas, periods)
+    const cleanPhone = phoneToValidate.replace(/[\s\-,।\.]/g, '');
     
     // Validate format (10 digits starting with 6-9)
     if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
-        console.warn(`   ⚠️  [VALIDATE] Invalid phone format: ${phone_number}`);
+        console.warn(`   ⚠️  [VALIDATE] Invalid phone format: ${phoneToValidate} (cleaned: ${cleanPhone})`);
         
         // Provide specific error message
         let errorMessage = "Invalid phone number format. ";
@@ -911,14 +1016,19 @@ async function handleValidatePhoneFormat(args, callData) {
         
         return {
             success: false,
-            message: errorMessage + `Got: ${phone_number}`,
+            message: errorMessage + `Got: ${phoneToValidate}`,
             validation_result: 'invalid_format',
-            phone_provided: phone_number,
+            phone_provided: phoneToValidate,
             phone_cleaned: cleanPhone
         };
     }
     
-    // Phone format is valid
+    // Phone format is valid - ensure it's stored in extractedData
+    if (!callData.extractedData.customer_phone || callData.extractedData.customer_phone !== cleanPhone) {
+        callData.extractedData.customer_phone = cleanPhone;
+        console.log(`   ✅ [VALIDATE] Phone stored in extractedData: ${cleanPhone}`);
+    }
+    
     console.log(`   ✅ [VALIDATE] Phone format valid: ${cleanPhone}`);
     
     return {

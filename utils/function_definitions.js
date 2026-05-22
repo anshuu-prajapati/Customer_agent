@@ -23,7 +23,7 @@ export function getPhase1Functions() {
             type: "function",
             function: {
                 name: "capture_machine_number",
-                description: "Capture the machine/chassis number when customer provides it. Machine number is 3-7 digits found on vehicle chassis. Call this when customer mentions machine number or chassis number.",
+                description: "Capture the machine/chassis number when customer FIRST provides it. Machine number is 3-7 digits found on vehicle chassis. Call this ONLY when customer initially mentions machine number for the FIRST TIME. NEVER call this during confirmation state - use confirm_machine_number instead. If you are in confirmation state and customer says yes/no, use confirm_machine_number function.",
                 parameters: {
                     type: "object",
                     properties: {
@@ -106,6 +106,23 @@ export function getPhase1Functions() {
                         }
                     },
                     required: ["customer_phone"]
+                }
+            }
+        },
+        {
+            type: "function",
+            function: {
+                name: "confirm_machine_number",
+                description: "CONFIRM the machine number that was already captured and repeated back to customer. Call this ONLY when customer responds to confirmation question 'Yeh sahi hai?' with yes/no. This is for CONFIRMATION ONLY - NOT for capturing new numbers. Use confirmed=true for any form of 'yes/correct/right' (Haan/Sahi hai/हां यह सही है), confirmed=false for any form of 'no/wrong/change' (Nahi/Galat hai/नहीं).",
+                parameters: {
+                    type: "object",
+                    properties: {
+                        confirmed: {
+                            type: "boolean",
+                            description: "True if customer confirms the machine number is correct (any form of yes/haan/sahi), false if they want to change it (any form of no/nahi/galat)"
+                        }
+                    },
+                    required: ["confirmed"]
                 }
             }
         }
@@ -237,48 +254,6 @@ export function getPhase2Functions() {
  */
 export function getPhase3Functions() {
     return [
-        {
-            type: "function",
-            function: {
-                name: "confirm_phone_number",
-                description: "Confirm if the registered phone number is correct when customer is asked about their phone. Call this when customer says 'haan', 'theek hai', 'sahi hai', or confirms the phone number is correct.",
-                parameters: {
-                    type: "object",
-                    properties: {
-                        confirmed: {
-                            type: "boolean",
-                            description: "True if customer confirms the phone number is correct, false if they want to change it"
-                        },
-                        registered_phone: {
-                            type: "string",
-                            description: "The registered phone number being confirmed (optional)"
-                        }
-                    },
-                    required: ["confirmed"]
-                }
-            }
-        },
-        {
-            type: "function",
-            function: {
-                name: "provide_alternate_phone",
-                description: "Provide an alternate/different phone number when customer wants to change the registered phone. Call this when customer provides a new phone number after saying they want to change it.",
-                parameters: {
-                    type: "object",
-                    properties: {
-                        alternate_phone: {
-                            type: "string",
-                            description: "The new/alternate 10-digit phone number provided by customer"
-                        },
-                        keep_both: {
-                            type: "boolean",
-                            description: "True if both numbers should be saved (registered + alternate), false if only alternate should be saved"
-                        }
-                    },
-                    required: ["alternate_phone"]
-                }
-            }
-        },
         {
             type: "function",
             function: {

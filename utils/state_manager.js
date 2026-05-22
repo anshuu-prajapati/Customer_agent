@@ -62,8 +62,8 @@ export const STATES = {
     
     // Data collection states (in order)
     COLLECT_MACHINE_NO: 'collect_machine_no',
+    CONFIRM_MACHINE_NO: 'confirm_machine_no',
     VALIDATE_MACHINE: 'validate_machine',
-    CONFIRM_PHONE: 'confirm_phone',
     COLLECT_COMPLAINT: 'collect_complaint',
     COLLECT_STATUS: 'collect_status',
     COLLECT_CITY: 'collect_city',
@@ -166,8 +166,8 @@ export function determineCurrentState(callData) {
     }
     
     // Priority 1: Check confirmation flags (these override everything)
-    if (callData.awaitingPhoneConfirm || callData.pendingPhoneConfirm) {
-        return STATES.CONFIRM_PHONE;
+    if (callData.awaitingMachineNumberConfirm || callData.pendingMachineNumberConfirm) {
+        return STATES.CONFIRM_MACHINE_NO;
     }
     
     if (callData.awaitingCityConfirm || callData.pendingCityConfirm) {
@@ -186,7 +186,7 @@ export function determineCurrentState(callData) {
     }
     
     // Step 2: Validate machine (if not validated yet)
-    if (d.machine_no && !callData.customerData) {
+    if (d.machine_no && !callData.customerData && !callData.awaitingMachineNumberConfirm && !callData.pendingMachineNumberConfirm) {
         return STATES.VALIDATE_MACHINE;
     }
     
@@ -205,7 +205,7 @@ export function determineCurrentState(callData) {
         return STATES.COLLECT_CITY;
     }
     
-    // Step 6: Phone (if not confirmed during machine validation)
+    // Step 6: Phone (collect if not provided)
     if (!d.customer_phone || !/^[6-9]\d{9}$/.test(d.customer_phone)) {
         return STATES.COLLECT_PHONE;
     }
@@ -259,9 +259,7 @@ export function buildStateSummary(callData) {
     
     // Determine what to do next
     let nextAction = '';
-    if (currentState === STATES.CONFIRM_PHONE) {
-        nextAction = 'Confirm registered phone number';
-    } else if (currentState === STATES.CONFIRM_CITY) {
+    if (currentState === STATES.CONFIRM_CITY) {
         nextAction = 'Confirm city and branch';
     } else if (currentState === STATES.FINAL_CONFIRM) {
         nextAction = 'Ask final confirmation and submit';
@@ -300,9 +298,9 @@ ${pendingList || '  (all collected!)'}
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 export const STATE_TRANSITIONS = {
     [STATES.GREETING]: [STATES.COLLECT_MACHINE_NO],
-    [STATES.COLLECT_MACHINE_NO]: [STATES.VALIDATE_MACHINE, STATES.COLLECT_MACHINE_NO, STATES.UPDATE_MACHINE],
-    [STATES.VALIDATE_MACHINE]: [STATES.CONFIRM_PHONE, STATES.COLLECT_COMPLAINT, STATES.COLLECT_MACHINE_NO, STATES.UPDATE_MACHINE],
-    [STATES.CONFIRM_PHONE]: [STATES.COLLECT_COMPLAINT, STATES.COLLECT_PHONE, STATES.UPDATE_MACHINE],
+    [STATES.COLLECT_MACHINE_NO]: [STATES.CONFIRM_MACHINE_NO, STATES.COLLECT_MACHINE_NO, STATES.UPDATE_MACHINE],
+    [STATES.CONFIRM_MACHINE_NO]: [STATES.VALIDATE_MACHINE, STATES.COLLECT_MACHINE_NO, STATES.UPDATE_MACHINE],
+    [STATES.VALIDATE_MACHINE]: [STATES.COLLECT_COMPLAINT, STATES.COLLECT_MACHINE_NO, STATES.UPDATE_MACHINE],
     [STATES.COLLECT_COMPLAINT]: [STATES.COLLECT_STATUS, STATES.UPDATE_MACHINE],
     [STATES.COLLECT_STATUS]: [STATES.COLLECT_CITY, STATES.UPDATE_MACHINE],
     [STATES.COLLECT_CITY]: [STATES.CONFIRM_CITY, STATES.COLLECT_PHONE, STATES.COLLECT_CITY, STATES.UPDATE_MACHINE],
@@ -331,8 +329,8 @@ export function getStateName(state) {
     const names = {
         [STATES.GREETING]: 'Greeting',
         [STATES.COLLECT_MACHINE_NO]: 'Collecting Machine Number',
+        [STATES.CONFIRM_MACHINE_NO]: 'Confirming Machine Number',
         [STATES.VALIDATE_MACHINE]: 'Validating Machine',
-        [STATES.CONFIRM_PHONE]: 'Confirming Phone',
         [STATES.COLLECT_COMPLAINT]: 'Collecting Complaint',
         [STATES.COLLECT_STATUS]: 'Collecting Machine Status',
         [STATES.COLLECT_CITY]: 'Collecting City',

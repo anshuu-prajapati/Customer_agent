@@ -270,6 +270,19 @@ export async function generateSpeech(text, options = {}) {
         
         console.error('❌ [Cartesia TTS] Error:', error);
         
+        // Enhanced error logging for quota/payment issues
+        if (err.response?.status === 402) {
+            console.error('💳 [Cartesia TTS] QUOTA EXHAUSTED - Payment Required (HTTP 402)');
+            console.error('💡 [Cartesia TTS] Suggestion: Check your Cartesia account balance and billing');
+            console.error('🔄 [Cartesia TTS] System will fallback to Google TTS automatically');
+        } else if (err.response?.status === 401) {
+            console.error('🔐 [Cartesia TTS] AUTHENTICATION FAILED - Invalid API Key (HTTP 401)');
+            console.error('💡 [Cartesia TTS] Suggestion: Check CARTESIA_API_KEY environment variable');
+        } else if (err.response?.status === 429) {
+            console.error('⏱️  [Cartesia TTS] RATE LIMITED - Too Many Requests (HTTP 429)');
+            console.error('💡 [Cartesia TTS] Suggestion: Reduce request frequency or upgrade plan');
+        }
+        
         // Log failed TTS usage
         if (options.callSid) {
             serviceLogger.logTTS(
