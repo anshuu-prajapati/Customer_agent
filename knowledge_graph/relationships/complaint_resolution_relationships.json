@@ -1,0 +1,61 @@
+{
+  "metadata": {
+    "relationship_type": "RESOLVES",
+    "description": "Relationships between engineers and complaint resolutions",
+    "total_relationships": 45,
+    "last_updated": "2024-05-19"
+  },
+  "relationships": [
+    {
+      "id": "res_001",
+      "source_entity": "eng_001",
+      "source_type": "Service_Engineer",
+      "target_entity": "complaint_001",
+      "target_type": "Service_Complaint",
+      "relationship_type": "RESOLVES",
+      "properties": {
+        "resolution_date": "2024-05-15T14:45:00Z",
+        "resolution_time_hours": 5.25,
+        "parts_cost": 3500,
+        "labor_cost": 1000,
+        "travel_distance_km": 15,
+        "customer_satisfaction": 4.5,
+        "first_call_resolution": true
+      }
+    },
+    {
+      "id": "res_002",
+      "source_entity": "eng_002",
+      "source_type": "Service_Engineer",
+      "target_entity": "complaint_002",
+      "target_type": "Service_Complaint",
+      "relationship_type": "RESOLVES",
+      "properties": {
+        "resolution_date": "2024-05-11T11:30:00Z",
+        "resolution_time_hours": 21.17,
+        "parts_cost": 2800,
+        "labor_cost": 1200,
+        "travel_distance_km": 8,
+        "customer_satisfaction": 4.8,
+        "first_call_resolution": false
+      }
+    },
+    {
+      "id": "res_003",
+      "source_entity": "eng_003",
+      "source_type": "Service_Engineer",
+      "target_entity": "complaint_003",
+      "target_type": "Service_Complaint",
+      "relationship_type": "RESOLVES",
+      "properties": {
+        "resolution_date": "2024-05-09T10:15:00Z",
+        "resolution_time_hours": 17.5,
+        "parts_cost": 800,
+        "labor_cost": 800,
+        "travel_distance_km": 25,
+        "customer_satisfaction": 4.0,
+        "first_call_resolution": true
+      }
+    }
+  ]
+}

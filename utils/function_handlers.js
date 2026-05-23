@@ -48,9 +48,6 @@ export async function executeFunctionCall(functionCall, callData) {
             case 'capture_city':
                 return await handleCaptureCity(args, callData);
             
-            case 'capture_phone_number':
-                return await handleCapturePhoneNumber(args, callData);
-            
             // Phase 2: Update/Correction
             case 'update_machine_number':
                 return await handleUpdateMachineNumber(args, callData);
@@ -60,9 +57,6 @@ export async function executeFunctionCall(functionCall, callData) {
             
             case 'update_city':
                 return await handleUpdateCity(args, callData);
-            
-            case 'update_phone_number':
-                return await handleUpdatePhoneNumber(args, callData);
             
             case 'update_machine_status':
                 return await handleUpdateMachineStatus(args, callData);
@@ -77,9 +71,6 @@ export async function executeFunctionCall(functionCall, callData) {
             // Phase 4: Validation
             case 'validate_machine_number':
                 return await handleValidateMachineNumber(args, callData);
-            
-            case 'validate_phone_format':
-                return await handleValidatePhoneFormat(args, callData);
             
             case 'validate_city':
                 return await handleValidateCity(args, callData);
@@ -314,32 +305,6 @@ async function handleCaptureCity(args, callData) {
 }
 
 /**
- * Handle capture_phone_number function
- */
-async function handleCapturePhoneNumber(args, callData) {
-    const { customer_phone } = args;
-    
-    // Clean phone number (remove spaces, dashes, and other non-digit characters)
-    const cleanPhone = customer_phone.replace(/[\s\-,।\.]/g, '');
-    
-    // Validate format (10 digits starting with 6-9)
-    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
-        return {
-            success: false,
-            message: `Invalid phone number format. Must be 10 digits starting with 6, 7, 8, or 9. Got: ${customer_phone}`
-        };
-    }
-    
-    // Store cleaned phone number in extractedData
-    callData.extractedData.customer_phone = cleanPhone;
-    
-    return {
-        success: true,
-        message: `Phone number ${cleanPhone} captured successfully.`
-    };
-}
-
-/**
  * Handle confirm_machine_number function
  */
 async function handleConfirmMachineNumber(args, callData) {
@@ -561,48 +526,6 @@ async function handleUpdateCity(args, callData) {
             message: `City '${new_city}' not found in service center list. Please ask customer to provide nearest city from: Jaipur, Kota, Ajmer, Udaipur, Bhilwara, Alwar, Sikar.`
         };
     }
-}
-
-/**
- * Handle update_phone_number function
- * Two-call pattern: First call without args asks for input, second call with args updates
- */
-async function handleUpdatePhoneNumber(args, callData) {
-    const { new_customer_phone, reason } = args;
-    
-    // FIRST CALL: No new phone provided - ask for it
-    if (!new_customer_phone) {
-        return {
-            success: false,
-            needsInput: true,
-            prompt: "Theek hai. Naya mobile number bataiye. 10 digit ka number.",
-            waitingFor: "phone_number",
-            message: "Waiting for new phone number from customer"
-        };
-    }
-    
-    // SECOND CALL: New phone provided - update it
-    const oldPhone = callData.extractedData.customer_phone;
-    
-    // Clean phone number (remove spaces, dashes, and other non-digit characters)
-    const cleanPhone = new_customer_phone.replace(/[\s\-,।\.]/g, '');
-    
-    // Validate format (10 digits starting with 6-9)
-    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
-        return {
-            success: false,
-            message: `Invalid phone number format. Must be 10 digits starting with 6, 7, 8, or 9. Got: ${new_customer_phone}`
-        };
-    }
-    
-    // Update the field with cleaned phone
-    callData.extractedData.customer_phone = cleanPhone;
-    
-    return {
-        success: true,
-        continueWithState: true, // Pass execution back to current state
-        message: `Phone number updated from ${oldPhone} to ${cleanPhone}. ${reason || 'Customer corrected the number.'}`
-    };
 }
 
 /**
@@ -981,65 +904,6 @@ async function handleValidateMachineNumber(args, callData) {
 }
 
 /**
- * Handle validate_phone_format function
- */
-async function handleValidatePhoneFormat(args, callData) {
-    const { phone_number } = args;
-    
-    console.log(`   🔍 [VALIDATE] Validating phone format: ${phone_number}`);
-    
-    // CRITICAL FIX: Use cleaned phone number from extractedData if available
-    // This prevents validation of raw input like "82903237, 58" when we already have "8290323758"
-    let phoneToValidate = phone_number;
-    
-    if (callData.extractedData.customer_phone && 
-        callData.extractedData.customer_phone !== phone_number) {
-        console.log(`   🔧 [VALIDATE] Using cleaned phone from extractedData: ${callData.extractedData.customer_phone} instead of raw input: ${phone_number}`);
-        phoneToValidate = callData.extractedData.customer_phone;
-    }
-    
-    // Clean phone number (remove spaces, dashes, commas, periods)
-    const cleanPhone = phoneToValidate.replace(/[\s\-,।\.]/g, '');
-    
-    // Validate format (10 digits starting with 6-9)
-    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
-        console.warn(`   ⚠️  [VALIDATE] Invalid phone format: ${phoneToValidate} (cleaned: ${cleanPhone})`);
-        
-        // Provide specific error message
-        let errorMessage = "Invalid phone number format. ";
-        if (cleanPhone.length !== 10) {
-            errorMessage += `Must be 10 digits (got ${cleanPhone.length} digits). `;
-        }
-        if (!/^[6-9]/.test(cleanPhone)) {
-            errorMessage += "Must start with 6, 7, 8, or 9. ";
-        }
-        
-        return {
-            success: false,
-            message: errorMessage + `Got: ${phoneToValidate}`,
-            validation_result: 'invalid_format',
-            phone_provided: phoneToValidate,
-            phone_cleaned: cleanPhone
-        };
-    }
-    
-    // Phone format is valid - ensure it's stored in extractedData
-    if (!callData.extractedData.customer_phone || callData.extractedData.customer_phone !== cleanPhone) {
-        callData.extractedData.customer_phone = cleanPhone;
-        console.log(`   ✅ [VALIDATE] Phone stored in extractedData: ${cleanPhone}`);
-    }
-    
-    console.log(`   ✅ [VALIDATE] Phone format valid: ${cleanPhone}`);
-    
-    return {
-        success: true,
-        message: `Phone number ${cleanPhone} has valid format.`,
-        validation_result: 'valid',
-        phone_validated: cleanPhone
-    };
-}
-
-/**
  * Handle validate_city function
  */
 async function handleValidateCity(args, callData) {
@@ -1236,7 +1100,8 @@ async function handleSubmitComplaint(args, callData) {
     
     // Validate that all required fields are present
     const data = callData.extractedData;
-    const required = ['machine_no', 'complaint_title', 'machine_status', 'city', 'city_id', 'customer_phone'];
+    const required = ['machine_no', 'complaint_title', 'machine_status', 'city', 'city_id'];
+    // NOTE: customer_phone removed from required — auto-filled from Twilio callingNumber
     const missing = [];
     
     for (const field of required) {
@@ -1263,14 +1128,7 @@ async function handleSubmitComplaint(args, callData) {
         };
     }
     
-    // Validate phone number format
-    if (!/^[6-9]\d{9}(?:,\s*[6-9]\d{9})*$/.test(String(data.customer_phone))) {
-        console.warn(`   ⚠️  [SUBMIT] Invalid phone number format: ${data.customer_phone}`);
-        return {
-            success: false,
-            message: `Invalid phone number format: ${data.customer_phone}. Must be 10 digits starting with 6-9.`
-        };
-    }
+    // NOTE: phone format validation removed — phone auto-filled from Twilio callingNumber
     
     // Check if machine is validated
     if (!callData.customerData || !callData.machineValidated) {
@@ -1297,7 +1155,7 @@ async function handleSubmitComplaint(args, callData) {
     console.log(`   ✅ [SUBMIT] All validations passed - ready to submit`);
     console.log(`   📋 [SUBMIT] Machine: ${data.machine_no} | Customer: ${callData.customerData.name}`);
     console.log(`   📋 [SUBMIT] Complaint: ${data.complaint_title}`);
-    console.log(`   📋 [SUBMIT] City: ${data.city} | Phone: ${data.customer_phone}`);
+    console.log(`   📋 [SUBMIT] City: ${data.city}`);
     
     return {
         success: true,
@@ -1308,8 +1166,8 @@ async function handleSubmitComplaint(args, callData) {
             customer_name: callData.customerData.name,
             complaint_title: data.complaint_title,
             machine_status: data.machine_status,
-            city: data.city,
-            phone: data.customer_phone
+            city: data.city
+            // NOTE: phone removed - auto-filled from Twilio callingNumber
         }
     };
 }

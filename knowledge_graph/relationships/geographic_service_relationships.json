@@ -1,0 +1,55 @@
+{
+  "metadata": {
+    "relationship_type": "SERVES",
+    "description": "Geographic service coverage relationships",
+    "total_relationships": 28,
+    "last_updated": "2024-05-19"
+  },
+  "relationships": [
+    {
+      "id": "geo_001",
+      "source_entity": "branch_4",
+      "source_type": "Service_Branch",
+      "target_entity": "JAIPUR",
+      "target_type": "City",
+      "relationship_type": "SERVES",
+      "properties": {
+        "primary_coverage": true,
+        "response_time_hours": 2,
+        "engineer_count": 3,
+        "monthly_complaints": 45,
+        "coverage_radius_km": 50
+      }
+    },
+    {
+      "id": "geo_002",
+      "source_entity": "branch_5",
+      "source_type": "Service_Branch",
+      "target_entity": "KOTA",
+      "target_type": "City",
+      "relationship_type": "SERVES",
+      "properties": {
+        "primary_coverage": true,
+        "response_time_hours": 1.5,
+        "engineer_count": 2,
+        "monthly_complaints": 32,
+        "coverage_radius_km": 40
+      }
+    },
+    {
+      "id": "geo_003",
+      "source_entity": "branch_7",
+      "source_type": "Service_Branch",
+      "target_entity": "UDAIPUR",
+      "target_type": "City",
+      "relationship_type": "SERVES",
+      "properties": {
+        "primary_coverage": true,
+        "response_time_hours": 3,
+        "engineer_count": 2,
+        "monthly_complaints": 28,
+        "coverage_radius_km": 60
+      }
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "metadata": {
+    "entity_type": "Customer",
+    "description": "Customers registered in Rajesh Motors service network",
+    "total_count": 85,
+    "last_updated": "2024-05-19",
+    "data_source": "customer_database"
+  },
+  "customers": [
+    {
+      "id": "cust_001",
+      "name": "Ramesh Kumar Sharma",
+      "phone": "9876543210",
+      "alternate_phone": "8765432109",
+      "city": "JAIPUR",
+      "address": "Plot 45, Malviya Nagar, Jaipur, Rajasthan",
+      "business_type": "Construction Contractor",
+      "machines_owned": ["machine_3115725"],
+      "registration_date": "2023-08-15",
+      "preferred_language": "Hindi",
+      "service_preferences": {
+        "preferred_time": "morning",
+        "communication_method": "phone_call",
+        "payment_method": "cash"
+      },
+      "relationship_score": 8.5,
+      "total_service_calls": 3,
+      "satisfaction_rating": 4.2
+    },
+    {
+      "id": "cust_002",
+      "name": "Suresh Agarwal",
+      "phone": "9988776655",
+      "alternate_phone": null,
+      "city": "KOTA",
+      "address": "Industrial Area, Sector 12, Kota, Rajasthan",
+      "business_type": "Mining Contractor",
+      "machines_owned": ["machine_4567890"],
+      "registration_date": "2022-03-10",
+      "preferred_language": "Hindi",
+      "service_preferences": {
+        "preferred_time": "anytime",
+        "communication_method": "phone_call",
+        "payment_method": "online"
+      },
+      "relationship_score": 9.2,
+      "total_service_calls": 8,
+      "satisfaction_rating": 4.7
+    },
+    {
+      "id": "cust_003",
+      "name": "Vikram Singh Rathore",
+      "phone": "9123456789",
+      "alternate_phone": "8234567890",
+      "city": "UDAIPUR",
+      "address": "Village Madri, Udaipur, Rajasthan",
+      "business_type": "Farmer",
+      "machines_owned": ["machine_7891234"],
+      "registration_date": "2024-01-20",
+      "preferred_language": "Hindi",
+      "service_preferences": {
+        "preferred_time": "evening",
+        "communication_method": "phone_call",
+        "payment_method": "cash"
+      },
+      "relationship_score": 7.8,
+      "total_service_calls": 1,
+      "satisfaction_rating": 4.0
+    },
+    {
+      "id": "cust_004",
+      "name": "Mahesh Chand Jain",
+      "phone": "9445566778",
+      "alternate_phone": "8556677889",
+      "city": "AJMER",
+      "address": "Riico Industrial Area, Ajmer, Rajasthan",
+      "business_type": "Road Construction",
+      "machines_owned": ["machine_1122334"],
+      "registration_date": "2021-11-05",
+      "preferred_language": "Hindi",
+      "service_preferences": {
+        "preferred_time": "morning",
+        "communication_method": "phone_call",
+        "payment_method": "card"
+      },
+      "relationship_score": 8.9,
+      "total_service_calls": 12,
+      "satisfaction_rating": 4.5
+    },
+    {
+      "id": "cust_005",
+      "name": "Rajesh Kumar Meena",
+      "phone": "9667788990",
+      "alternate_phone": null,
+      "city": "SIKAR",
+      "address": "Near Circuit House, Jaipur Road, Sikar, Rajasthan",
+      "business_type": "Infrastructure Development",
+      "machines_owned": ["machine_5566778"],
+      "registration_date": "2023-12-01",
+      "preferred_language": "Hindi",
+      "service_preferences": {
+        "preferred_time": "afternoon",
+        "communication_method": "phone_call",
+        "payment_method": "upi"
+      },
+      "relationship_score": 8.1,
+      "total_service_calls": 2,
+      "satisfaction_rating": 4.3
+    }
+  ]
+}

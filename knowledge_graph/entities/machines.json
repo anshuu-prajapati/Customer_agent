@@ -1,0 +1,161 @@
+{
+  "metadata": {
+    "entity_type": "JCB_Machine",
+    "description": "JCB machines registered in Rajesh Motors service network",
+    "total_count": 150,
+    "last_updated": "2024-05-19",
+    "data_source": "machine_validation_api"
+  },
+  "machines": [
+    {
+      "id": "machine_3115725",
+      "machine_no": "3115725",
+      "model": "3DX Super",
+      "sub_model": "3DX Super Eco",
+      "machine_type": "Warranty",
+      "customer_id": "cust_001",
+      "purchase_date": "2023-08-15",
+      "installation_date": "2023-08-20",
+      "business_partner_code": "BP001",
+      "location": {
+        "city": "JAIPUR",
+        "branch_code": "4",
+        "coordinates": {
+          "lat": 26.865495682,
+          "lng": 75.681541443
+        }
+      },
+      "service_history": {
+        "last_service": "2024-04-10",
+        "total_complaints": 3,
+        "warranty_status": "active",
+        "warranty_expiry": "2025-08-15"
+      },
+      "usage_pattern": {
+        "hours_per_day": 8,
+        "primary_use": "construction",
+        "operator_experience": "experienced"
+      }
+    },
+    {
+      "id": "machine_4567890",
+      "machine_no": "4567890",
+      "model": "3DX Xtra",
+      "sub_model": "3DX Xtra Power",
+      "machine_type": "AMC",
+      "customer_id": "cust_002",
+      "purchase_date": "2022-03-10",
+      "installation_date": "2022-03-15",
+      "business_partner_code": "BP002",
+      "location": {
+        "city": "KOTA",
+        "branch_code": "5",
+        "coordinates": {
+          "lat": 25.12909317,
+          "lng": 75.868736267
+        }
+      },
+      "service_history": {
+        "last_service": "2024-05-01",
+        "total_complaints": 8,
+        "warranty_status": "expired",
+        "amc_status": "active"
+      },
+      "usage_pattern": {
+        "hours_per_day": 12,
+        "primary_use": "mining",
+        "operator_experience": "expert"
+      }
+    },
+    {
+      "id": "machine_7891234",
+      "machine_no": "7891234",
+      "model": "3DX Pro",
+      "sub_model": "3DX Pro Efficient",
+      "machine_type": "Warranty",
+      "customer_id": "cust_003",
+      "purchase_date": "2024-01-20",
+      "installation_date": "2024-01-25",
+      "business_partner_code": "BP001",
+      "location": {
+        "city": "UDAIPUR",
+        "branch_code": "7",
+        "coordinates": {
+          "lat": 24.570493698,
+          "lng": 73.745994568
+        }
+      },
+      "service_history": {
+        "last_service": "2024-03-15",
+        "total_complaints": 1,
+        "warranty_status": "active",
+        "warranty_expiry": "2026-01-20"
+      },
+      "usage_pattern": {
+        "hours_per_day": 6,
+        "primary_use": "agriculture",
+        "operator_experience": "beginner"
+      }
+    },
+    {
+      "id": "machine_1122334",
+      "machine_no": "1122334",
+      "model": "3DX Super",
+      "sub_model": "3DX Super Eco",
+      "machine_type": "AMC",
+      "customer_id": "cust_004",
+      "purchase_date": "2021-11-05",
+      "installation_date": "2021-11-10",
+      "business_partner_code": "BP003",
+      "location": {
+        "city": "AJMER",
+        "branch_code": "1",
+        "coordinates": {
+          "lat": 26.43488884,
+          "lng": 74.698112488
+        }
+      },
+      "service_history": {
+        "last_service": "2024-04-25",
+        "total_complaints": 12,
+        "warranty_status": "expired",
+        "amc_status": "active"
+      },
+      "usage_pattern": {
+        "hours_per_day": 10,
+        "primary_use": "road_construction",
+        "operator_experience": "experienced"
+      }
+    },
+    {
+      "id": "machine_5566778",
+      "machine_no": "5566778",
+      "model": "3DX Xtra",
+      "sub_model": "3DX Xtra Power",
+      "machine_type": "Warranty",
+      "customer_id": "cust_005",
+      "purchase_date": "2023-12-01",
+      "installation_date": "2023-12-05",
+      "business_partner_code": "BP002",
+      "location": {
+        "city": "SIKAR",
+        "branch_code": "6",
+        "coordinates": {
+          "lat": 27.591619492,
+          "lng": 75.171058655
+        }
+      },
+      "service_history": {
+        "last_service": "2024-02-20",
+        "total_complaints": 2,
+        "warranty_status": "active",
+        "warranty_expiry": "2025-12-01"
+      },
+      "usage_pattern": {
+        "hours_per_day": 9,
+        "primary_use": "infrastructure",
+        "operator_experience": "experienced"
+      }
+    }
+  ]
+}

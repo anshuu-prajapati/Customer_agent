@@ -1,0 +1,186 @@
+{
+  "metadata": {
+    "relationship_type": "Flow_Intelligence_Relationships",
+    "description": "Relationships connecting flow intelligence entities for conversation optimization",
+    "total_relationships": 45,
+    "last_updated": "2024-05-19"
+  },
+  "intent_to_solution_relationships": [
+    {
+      "intent_id": "intent_001",
+      "solution_id": "pathway_001",
+      "relationship_type": "OPTIMIZES_WITH",
+      "confidence": 0.92,
+      "token_savings": 450,
+      "time_savings": "35%"
+    },
+    {
+      "intent_id": "intent_002",
+      "solution_id": "pathway_002", 
+      "relationship_type": "OPTIMIZES_WITH",
+      "confidence": 0.87,
+      "token_savings": 380,
+      "time_savings": "30%"
+    },
+    {
+      "intent_id": "intent_003",
+      "solution_id": "pathway_003",
+      "relationship_type": "OPTIMIZES_WITH",
+      "confidence": 0.94,
+      "token_savings": 520,
+      "time_savings": "45%"
+    }
+  ],
+  "intent_to_template_relationships": [
+    {
+      "intent_id": "intent_001",
+      "template_id": "template_001",
+      "relationship_type": "USES_CONTEXT",
+      "usage_frequency": 0.85,
+      "token_reduction": 0.65
+    },
+    {
+      "intent_id": "intent_002",
+      "template_id": "template_002",
+      "relationship_type": "USES_CONTEXT",
+      "usage_frequency": 0.78,
+      "token_reduction": 0.58
+    },
+    {
+      "intent_id": "intent_003",
+      "template_id": "template_003",
+      "relationship_type": "USES_CONTEXT",
+      "usage_frequency": 0.92,
+      "token_reduction": 0.72
+    },
+    {
+      "intent_id": "intent_004",
+      "template_id": "template_004",
+      "relationship_type": "USES_CONTEXT",
+      "usage_frequency": 0.73,
+      "token_reduction": 0.55
+    },
+    {
+      "intent_id": "intent_005",
+      "template_id": "template_005",
+      "relationship_type": "USES_CONTEXT",
+      "usage_frequency": 0.81,
+      "token_reduction": 0.62
+    },
+    {
+      "intent_id": "intent_006",
+      "template_id": "template_006",
+      "relationship_type": "USES_CONTEXT",
+      "usage_frequency": 0.76,
+      "token_reduction": 0.68
+    }
+  ],
+  "flow_to_pattern_relationships": [
+    {
+      "flow_id": "shortcut_001",
+      "pattern_id": "pattern_001",
+      "relationship_type": "ENHANCES_PATTERN",
+      "improvement_factor": 0.80,
+      "applicable_scenarios": ["repeat_customer", "high_confidence_intent"]
+    },
+    {
+      "flow_id": "shortcut_002",
+      "pattern_id": "pattern_002",
+      "relationship_type": "ENHANCES_PATTERN",
+      "improvement_factor": 0.70,
+      "applicable_scenarios": ["safety_critical", "brake_failure"]
+    },
+    {
+      "flow_id": "shortcut_003",
+      "pattern_id": "pattern_004",
+      "relationship_type": "ENHANCES_PATTERN",
+      "improvement_factor": 0.75,
+      "applicable_scenarios": ["routine_service", "oil_change"]
+    }
+  ],
+  "template_to_machine_relationships": [
+    {
+      "template_id": "template_001",
+      "machine_models": ["3DX Super", "3DX Xtra", "3DX Pro"],
+      "relationship_type": "APPLICABLE_TO_MODEL",
+      "effectiveness_by_model": {
+        "3DX Super": 0.92,
+        "3DX Xtra": 0.85,
+        "3DX Pro": 0.88
+      }
+    },
+    {
+      "template_id": "template_002",
+      "machine_models": ["3DX Super", "3DX Xtra"],
+      "relationship_type": "APPLICABLE_TO_MODEL",
+      "effectiveness_by_model": {
+        "3DX Super": 0.87,
+        "3DX Xtra": 0.90
+      }
+    },
+    {
+      "template_id": "template_003",
+      "machine_models": ["3DX Pro", "3DX Super"],
+      "relationship_type": "APPLICABLE_TO_MODEL",
+      "effectiveness_by_model": {
+        "3DX Pro": 0.94,
+        "3DX Super": 0.82
+      }
+    }
+  ],
+  "solution_to_specialist_relationships": [
+    {
+      "solution_id": "pathway_001",
+      "specialist_type": "engine_repair",
+      "relationship_type": "REQUIRES_SPECIALIST",
+      "priority": "high",
+      "estimated_resolution_time": 4.2
+    },
+    {
+      "solution_id": "pathway_002",
+      "specialist_type": "hydraulic_repair",
+      "relationship_type": "REQUIRES_SPECIALIST",
+      "priority": "medium",
+      "estimated_resolution_time": 6.5
+    },
+    {
+      "solution_id": "pathway_003",
+      "specialist_type": "electrical_repair",
+      "relationship_type": "REQUIRES_SPECIALIST",
+      "priority": "medium",
+      "estimated_resolution_time": 3.2
+    }
+  ],
+  "seasonal_optimization_relationships": [
+    {
+      "season": "summer",
+      "affected_intents": ["intent_003", "intent_002"],
+      "relationship_type": "SEASONAL_BOOST",
+      "frequency_increase": 0.60,
+      "optimization_adjustments": {
+        "ac_problems": "prioritize_gas_refill_check",
+        "hydraulic_problems": "check_overheating_first"
+      }
+    },
+    {
+      "season": "winter", 
+      "affected_intents": ["intent_001", "intent_006"],
+      "relationship_type": "SEASONAL_BOOST",
+      "frequency_increase": 0.45,
+      "optimization_adjustments": {
+        "engine_problems": "prioritize_battery_check",
+        "electrical_problems": "check_cold_weather_impact"
+      }
+    },
+    {
+      "season": "monsoon",
+      "affected_intents": ["intent_006", "intent_001"],
+      "relationship_type": "SEASONAL_BOOST", 
+      "frequency_increase": 0.40,
+      "optimization_adjustments": {
+        "electrical_problems": "prioritize_water_damage_check",
+        "engine_problems": "check_air_filter_moisture"
+      }
+    }
+  ]
+}

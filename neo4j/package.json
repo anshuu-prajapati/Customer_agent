@@ -1,0 +1,20 @@
+{
+  "name": "rajesh-motors-kg-import",
+  "version": "1.0.0",
+  "description": "Neo4j Knowledge Graph import scripts for Rajesh Motors JCB Service IVR",
+  "type": "module",
+  "main": "import_all.js",
+  "scripts": {
+    "import": "node scripts/import_all.js",
+    "test-connection": "node scripts/test_connection.js",
+    "clear-db": "node scripts/clear_database.js",
+    "verify-import": "node scripts/verify_import.js"
+  },
+  "dependencies": {
+    "neo4j-driver": "^5.15.0",
+    "dotenv": "^16.3.1"
+  },
+  "keywords": ["neo4j", "knowledge-graph", "ivr", "jcb", "service"],
+  "author": "Rajesh Motors",
+  "license": "ISC"
+}

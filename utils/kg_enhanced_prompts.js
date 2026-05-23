@@ -322,19 +322,7 @@ export async function buildKGEnhancedContext(currentState, extractedData, custom
             }
         }
         
-        // 5. Legacy flow shortcuts (keeping for backward compatibility)
-        if (extractedData.customer_phone) {
-            const shortcutData = await getKGFlowShortcuts(extractedData.customer_phone, extractedData.machine_no);
-            
-            if (shortcutData.success) {
-                // Only add if we don't already have repeat customer shortcuts
-                if (!kgEnhancements.shortcutContext) {
-                    kgEnhancements.shortcutContext = shortcutData.context;
-                    kgEnhancements.totalTokenSavings += (shortcutData.tokenReduction * 200);
-                    kgEnhancements.optimizations.push(`Flow Shortcut: ${shortcutData.timeReduction} faster`);
-                }
-            }
-        }
+        // NOTE: Legacy flow shortcuts removed - phone number no longer collected
         
         // Log KG usage
         if (kgEnhancements.optimizations.length > 0) {

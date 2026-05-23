@@ -1,0 +1,152 @@
+{
+  "metadata": {
+    "analysis_type": "Problem_Pattern_Analysis",
+    "description": "Analysis of complaint patterns for predictive maintenance and optimization",
+    "analysis_period": "2024-01-01 to 2024-05-19",
+    "total_complaints_analyzed": 320
+  },
+  "problem_patterns": {
+    "by_machine_model": {
+      "3DX Super": {
+        "total_complaints": 145,
+        "common_problems": [
+          {
+            "problem": "Engine Not Starting",
+            "frequency": 0.28,
+            "avg_resolution_time": 4.2,
+            "seasonal_pattern": "higher_in_winter"
+          },
+          {
+            "problem": "Oil Change Service",
+            "frequency": 0.22,
+            "avg_resolution_time": 1.8,
+            "seasonal_pattern": "consistent"
+          },
+          {
+            "problem": "Hydraulic Oil Leakage",
+            "frequency": 0.18,
+            "avg_resolution_time": 6.5,
+            "seasonal_pattern": "higher_in_summer"
+          }
+        ]
+      },
+      "3DX Xtra": {
+        "total_complaints": 98,
+        "common_problems": [
+          {
+            "problem": "Transmission Problem",
+            "frequency": 0.31,
+            "avg_resolution_time": 8.2,
+            "seasonal_pattern": "consistent"
+          },
+          {
+            "problem": "Electrical Problem",
+            "frequency": 0.24,
+            "avg_resolution_time": 5.1,
+            "seasonal_pattern": "higher_in_monsoon"
+          },
+          {
+            "problem": "Brake System Problem",
+            "frequency": 0.19,
+            "avg_resolution_time": 4.8,
+            "seasonal_pattern": "consistent"
+          }
+        ]
+      },
+      "3DX Pro": {
+        "total_complaints": 77,
+        "common_problems": [
+          {
+            "problem": "AC Not Working",
+            "frequency": 0.35,
+            "avg_resolution_time": 3.2,
+            "seasonal_pattern": "higher_in_summer"
+          },
+          {
+            "problem": "Engine Not Starting",
+            "frequency": 0.26,
+            "avg_resolution_time": 4.8,
+            "seasonal_pattern": "higher_in_winter"
+          },
+          {
+            "problem": "Oil Change Service",
+            "frequency": 0.21,
+            "avg_resolution_time": 1.9,
+            "seasonal_pattern": "consistent"
+          }
+        ]
+      }
+    },
+    "by_usage_pattern": {
+      "construction": {
+        "total_machines": 85,
+        "avg_complaints_per_machine": 2.8,
+        "common_problems": ["Engine Not Starting", "Hydraulic Oil Leakage", "Brake System Problem"],
+        "peak_complaint_months": ["March", "April", "October", "November"]
+      },
+      "mining": {
+        "total_machines": 32,
+        "avg_complaints_per_machine": 4.2,
+        "common_problems": ["Transmission Problem", "Hydraulic Oil Leakage", "Engine Not Starting"],
+        "peak_complaint_months": ["May", "June", "September", "October"]
+      },
+      "agriculture": {
+        "total_machines": 28,
+        "avg_complaints_per_machine": 1.9,
+        "common_problems": ["AC Not Working", "Oil Change Service", "Engine Not Starting"],
+        "peak_complaint_months": ["April", "May", "October", "November"]
+      }
+    },
+    "by_geographic_region": {
+      "JAIPUR_region": {
+        "cities": ["JAIPUR", "DAUSA", "KARAULI", "TONK"],
+        "total_complaints": 128,
+        "avg_resolution_time": 4.2,
+        "common_problems": ["Engine Not Starting", "Oil Change Service", "AC Not Working"],
+        "customer_satisfaction": 4.4
+      },
+      "KOTA_region": {
+        "cities": ["KOTA", "JHALAWAR", "RAMGANJMANDI"],
+        "total_complaints": 89,
+        "avg_resolution_time": 5.1,
+        "common_problems": ["Hydraulic Oil Leakage", "Transmission Problem", "Brake System Problem"],
+        "customer_satisfaction": 4.6
+      },
+      "UDAIPUR_region": {
+        "cities": ["UDAIPUR", "DUNGARPUR", "BANSWARA", "RAJSAMAND"],
+        "total_complaints": 67,
+        "avg_resolution_time": 4.8,
+        "common_problems": ["AC Not Working", "Engine Not Starting", "Electrical Problem"],
+        "customer_satisfaction": 4.2
+      }
+    }
+  },
+  "predictive_insights": {
+    "high_risk_machines": [
+      {
+        "machine_id": "machine_4567890",
+        "risk_score": 0.85,
+        "predicted_problems": ["Transmission Problem", "Hydraulic Oil Leakage"],
+        "recommended_action": "Preventive maintenance within 30 days"
+      },
+      {
+        "machine_id": "machine_1122334",
+        "risk_score": 0.72,
+        "predicted_problems": ["Brake System Problem", "Engine Not Starting"],
+        "recommended_action": "Schedule inspection within 45 days"
+      }
+    ],
+    "seasonal_predictions": {
+      "summer_2024": {
+        "expected_complaint_increase": 0.35,
+        "primary_problems": ["AC Not Working", "Hydraulic Oil Leakage"],
+        "resource_planning": "Increase AC technician availability"
+      },
+      "monsoon_2024": {
+        "expected_complaint_increase": 0.22,
+        "primary_problems": ["Electrical Problem", "Engine Not Starting"],
+        "resource_planning": "Stock electrical components"
+      }
+    }
+  }
+}

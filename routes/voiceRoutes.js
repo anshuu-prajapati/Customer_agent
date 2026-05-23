@@ -68,7 +68,7 @@ function missingField(d) {
     if (!d.complaint_title) return "complaint_title";
     if (!d.machine_status) return "machine_status";
     if (!d.city || !d.city_id) return "city";
-    if (!d.customer_phone || !/^[6-9]\d{9}$/.test(d.customer_phone)) return "customer_phone";
+    // NOTE: customer_phone removed — auto-filled from Twilio callingNumber
     return null;
 }
 
@@ -113,8 +113,6 @@ function getSmartSilencePrompt(callData) {
                 questionMatchesCurrentField = true;
             } else if (missing === "city" && /shahar|city|kahan|kaunse|location/i.test(lastQ)) {
                 questionMatchesCurrentField = true;
-            } else if (missing === "customer_phone" && /phone|mobile|number.*10|contact/i.test(lastQ)) {
-                questionMatchesCurrentField = true;
             } else if (!missing && /sahi.*hain|save.*kar|confirm|theek.*hai|register/i.test(lastQ)) {
                 // Final confirmation question
                 questionMatchesCurrentField = true;
@@ -151,25 +149,10 @@ function getSmartSilencePrompt(callData) {
     if (missing === "city") {
         return "Aap kaunse shahar mein hain? Jaipur, Kota, Ajmer, Udaipur?";
     }
-    if (missing === "customer_phone") {
-        return "Aapka mobile number? 10 digit ka number bataiye.";
-    }
+    // NOTE: customer_phone prompt removed — auto-filled from Twilio callingNumber
     
     // All fields collected, waiting for final confirmation
     return "Sab details sahi hain? Haan boliye to complaint register ho jayegi.";
-}
-
-function parsePhoneFromText(text) {
-    const extracted = extractAllData(text, { customer_phone: null });
-    if (extracted.customer_phone) return extracted.customer_phone;
-    const compact = text.replace(/[\s\-,।\.]/g, "");
-    const digits = compact.replace(/[^0-9]/g, "");
-    if (/^[6-9]\d{9}$/.test(digits)) return digits;
-    if (digits.length >= 10) {
-        const candidate = digits.slice(-10);
-        if (/^[6-9]\d{9}$/.test(candidate)) return candidate;
-    }
-    return null;
 }
 
 function isPositiveConfirmation(text) {
@@ -660,12 +643,10 @@ router.post("/", async (req, res) => {
             customerData: null,
             turnCount: 0,
             silenceCount: 0,
-            awaitingPhoneConfirm: false,
             machineNotFoundCount: 0,
             awaitingComplaintAction: false,
             existingComplaintId: null,
             awaitingFinalConfirm: false,
-            awaitingAlternatePhone: false,
             cityConfirmed: false,
             pendingCityConfirm: false,
             // Simple retry logic for machine number
@@ -1112,27 +1093,9 @@ router.post("/process", async (req, res) => {
         // ── STEP 6: REMOVED - Phone confirmation handling ─────────────────
         // Simplified flow: user provides phone → validate format → continue
 
-        // ── STEP 7: Handle alternate phone number ──────────────────
-        if (callData.awaitingAlternatePhone) {
-            callData.awaitingAlternatePhone = false;
-            const foundPhone = parsePhoneFromText(userInput);
-            if (foundPhone) {
-                const originalPhone = callData.customerData?.phone || "";
-                if (originalPhone && originalPhone !== foundPhone) {
-                    callData.extractedData.customer_phone = `${originalPhone}, ${foundPhone}`;
-                } else {
-                    callData.extractedData.customer_phone = foundPhone;
-                }
-                // Continue to next step - don't call AI
-            } else {
-                callData.awaitingAlternatePhone = true;
-                const prompt = "Thoda clearly 10 digit ka mobile number bataiye.";
-                callData.lastQuestion = prompt;
-                activeCalls.set(CallSid, callData);
-                await speak(twiml, prompt, { emotion: 'professional' });
-                return res.type("text/xml").send(twiml.toString());
-            }
-        }
+        // ── STEP 7: REMOVED - Alternate phone number handling ──────────────────
+        // Phone numbers are now auto-filled from Twilio callingNumber during submission
+        // No need for alternate phone collection
 
         // ── STEP 7.5: Handle machine number update confirmation ────────────────────
         if (callData.awaitingMachineUpdateConfirm) {
@@ -1591,7 +1554,6 @@ router.post("/process", async (req, res) => {
             complaint: callData.extractedData.complaint_title || "❌",
             status: callData.extractedData.machine_status || "❌",
             city: callData.extractedData.city || "❌",
-            phone: callData.extractedData.customer_phone || "❌",
             missing: missing || "✅ READY",
         })}`);
 
@@ -1603,15 +1565,13 @@ router.post("/process", async (req, res) => {
         const allDataCollected = callData.extractedData.machine_no && 
                                 callData.extractedData.complaint_title && 
                                 callData.extractedData.machine_status && 
-                                callData.extractedData.city && 
-                                callData.extractedData.customer_phone;
+                                callData.extractedData.city;
         
         if (allDataCollected && currentState !== 'final_confirm') {
             console.log(`   ⚠️  [STATE ISSUE] All data collected but state is ${currentState}, should be final_confirm`);
             console.log(`   🔍 [STATE DEBUG] Confirmation flags:`);
             console.log(`      awaitingMachineNumberConfirm: ${callData.awaitingMachineNumberConfirm || false}`);
             console.log(`      pendingMachineNumberConfirm: ${callData.pendingMachineNumberConfirm || false}`);
-            console.log(`      awaitingPhoneConfirm: ${callData.awaitingPhoneConfirm || false}`);
             console.log(`      awaitingFinalConfirm: ${callData.awaitingFinalConfirm || false}`);
             console.log(`      inUpdateFlow: ${callData.inUpdateFlow || false}`);
             
@@ -1620,11 +1580,6 @@ router.post("/process", async (req, res) => {
                 console.log(`   🔧 [STATE FIX] Clearing machine confirmation flags - all data collected`);
                 callData.awaitingMachineNumberConfirm = false;
                 callData.pendingMachineNumberConfirm = false;
-            }
-            
-            if (callData.awaitingPhoneConfirm) {
-                console.log(`   🔧 [STATE FIX] Clearing phone confirmation flags - all data collected`);
-                callData.awaitingPhoneConfirm = false;
             }
             
             // Re-determine state after clearing flags

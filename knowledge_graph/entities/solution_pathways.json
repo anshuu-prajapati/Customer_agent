@@ -1,0 +1,311 @@
+{
+  "metadata": {
+    "entity_type": "Solution_Pathway",
+    "description": "Optimized solution pathways and troubleshooting flows for common problems",
+    "pathway_version": "1.5",
+    "last_updated": "2024-05-19",
+    "data_source": "resolution_analysis"
+  },
+  "solution_pathways": [
+    {
+      "id": "pathway_001",
+      "problem_type": "engine_not_starting",
+      "pathway_name": "Engine Starting Troubleshooting",
+      "success_rate": 0.92,
+      "avg_resolution_time": 4.2,
+      "steps": [
+        {
+          "step_id": "step_1",
+          "step_name": "Initial Assessment",
+          "question": "इंजन स्टार्ट करने पर कोई आवाज आती है?",
+          "type": "diagnostic",
+          "branches": [
+            {
+              "response": "हां, आवाज आती है",
+              "next_step": "step_2a",
+              "probability": 0.65,
+              "context": "Starter motor working, check fuel and ignition"
+            },
+            {
+              "response": "नहीं, कोई आवाज नहीं",
+              "next_step": "step_2b", 
+              "probability": 0.35,
+              "context": "Electrical issue, check battery and starter"
+            }
+          ]
+        },
+        {
+          "step_id": "step_2a",
+          "step_name": "Fuel System Check",
+          "question": "फ्यूल टैंक में पेट्रोल/डीजल है?",
+          "type": "verification",
+          "branches": [
+            {
+              "response": "हां, फ्यूल है",
+              "next_step": "step_3a",
+              "probability": 0.80,
+              "context": "Check fuel filter and injection system"
+            },
+            {
+              "response": "नहीं, फ्यूल कम है",
+              "next_step": "solution_fuel_refill",
+              "probability": 0.20,
+              "context": "Simple fuel refill required"
+            }
+          ]
+        },
+        {
+          "step_id": "step_2b",
+          "step_name": "Battery Check",
+          "question": "डैशबोर्ड की लाइट जल रही है?",
+          "type": "verification",
+          "branches": [
+            {
+              "response": "हां, लाइट जल रही है",
+              "next_step": "step_3b",
+              "probability": 0.70,
+              "context": "Battery OK, check starter motor connections"
+            },
+            {
+              "response": "नहीं, कोई लाइट नहीं",
+              "next_step": "solution_battery_replacement",
+              "probability": 0.30,
+              "context": "Battery dead, needs replacement"
+            }
+          ]
+        }
+      ],
+      "solutions": [
+        {
+          "solution_id": "solution_fuel_refill",
+          "solution_name": "Fuel Refill",
+          "description": "फ्यूल टैंक भरवाएं",
+          "estimated_time": 0.5,
+          "cost_estimate": "₹2000-5000",
+          "specialist_required": false,
+          "success_rate": 0.98
+        },
+        {
+          "solution_id": "solution_battery_replacement",
+          "solution_name": "Battery Replacement",
+          "description": "बैटरी बदलवाएं",
+          "estimated_time": 1.0,
+          "cost_estimate": "₹8000-15000",
+          "specialist_required": true,
+          "success_rate": 0.95
+        },
+        {
+          "solution_id": "solution_fuel_filter_clean",
+          "solution_name": "Fuel Filter Cleaning",
+          "description": "फ्यूल फिल्टर साफ करवाएं",
+          "estimated_time": 2.0,
+          "cost_estimate": "₹3000-6000",
+          "specialist_required": true,
+          "success_rate": 0.88
+        }
+      ],
+      "optimization": {
+        "token_reduction": 0.65,
+        "skip_generic_steps": ["basic_machine_check", "general_inspection"],
+        "direct_specialist_routing": "engine_repair"
+      }
+    },
+    {
+      "id": "pathway_002",
+      "problem_type": "hydraulic_oil_leakage",
+      "pathway_name": "Hydraulic Leak Diagnosis",
+      "success_rate": 0.87,
+      "avg_resolution_time": 6.5,
+      "steps": [
+        {
+          "step_id": "step_1",
+          "step_name": "Leak Location Assessment",
+          "question": "तेल कहाँ से निकल रहा है - ऊपर से या नीचे से?",
+          "type": "diagnostic",
+          "branches": [
+            {
+              "response": "ऊपर से निकल रहा",
+              "next_step": "step_2a",
+              "probability": 0.60,
+              "context": "Hydraulic cylinder or hose leak"
+            },
+            {
+              "response": "नीचे से निकल रहा",
+              "next_step": "step_2b",
+              "probability": 0.40,
+              "context": "Tank or pump leak"
+            }
+          ]
+        },
+        {
+          "step_id": "step_2a",
+          "step_name": "Cylinder Leak Check",
+          "question": "हाइड्रोलिक आर्म हिलाने पर ज्यादा तेल निकलता है?",
+          "type": "verification",
+          "branches": [
+            {
+              "response": "हां, ज्यादा निकलता है",
+              "next_step": "solution_cylinder_seal",
+              "probability": 0.75,
+              "context": "Cylinder seal replacement needed"
+            },
+            {
+              "response": "नहीं, वैसा ही निकलता है",
+              "next_step": "solution_hose_replacement",
+              "probability": 0.25,
+              "context": "Hydraulic hose replacement needed"
+            }
+          ]
+        }
+      ],
+      "solutions": [
+        {
+          "solution_id": "solution_cylinder_seal",
+          "solution_name": "Hydraulic Cylinder Seal Replacement",
+          "description": "हाइड्रोलिक सिलिंडर की सील बदलवाएं",
+          "estimated_time": 6.0,
+          "cost_estimate": "₹15000-25000",
+          "specialist_required": true,
+          "success_rate": 0.90
+        },
+        {
+          "solution_id": "solution_hose_replacement",
+          "solution_name": "Hydraulic Hose Replacement",
+          "description": "हाइड्रोलिक होज बदलवाएं",
+          "estimated_time": 3.0,
+          "cost_estimate": "₹5000-10000",
+          "specialist_required": true,
+          "success_rate": 0.95
+        }
+      ],
+      "optimization": {
+        "token_reduction": 0.58,
+        "skip_generic_steps": ["basic_inspection"],
+        "direct_specialist_routing": "hydraulic_repair"
+      }
+    },
+    {
+      "id": "pathway_003",
+      "problem_type": "ac_not_working",
+      "pathway_name": "AC System Diagnosis",
+      "success_rate": 0.94,
+      "avg_resolution_time": 3.2,
+      "steps": [
+        {
+          "step_id": "step_1",
+          "step_name": "AC Power Check",
+          "question": "एसी का स्विच ऑन करने पर कोई आवाज आती है?",
+          "type": "diagnostic",
+          "branches": [
+            {
+              "response": "हां, आवाज आती है",
+              "next_step": "step_2a",
+              "probability": 0.70,
+              "context": "Compressor working, check cooling system"
+            },
+            {
+              "response": "नहीं, कोई आवाज नहीं",
+              "next_step": "step_2b",
+              "probability": 0.30,
+              "context": "Electrical or compressor issue"
+            }
+          ]
+        },
+        {
+          "step_id": "step_2a",
+          "step_name": "Cooling Assessment",
+          "question": "हवा आ रही है लेकिन ठंडी नहीं है?",
+          "type": "verification",
+          "branches": [
+            {
+              "response": "हां, हवा आती है पर गरम",
+              "next_step": "solution_gas_refill",
+              "probability": 0.80,
+              "context": "Refrigerant gas low"
+            },
+            {
+              "response": "हवा ही नहीं आ रही",
+              "next_step": "solution_blower_repair",
+              "probability": 0.20,
+              "context": "Blower motor issue"
+            }
+          ]
+        }
+      ],
+      "solutions": [
+        {
+          "solution_id": "solution_gas_refill",
+          "solution_name": "AC Gas Refill",
+          "description": "एसी गैस भरवाएं",
+          "estimated_time": 2.0,
+          "cost_estimate": "₹3000-5000",
+          "specialist_required": true,
+          "success_rate": 0.92
+        },
+        {
+          "solution_id": "solution_compressor_repair",
+          "solution_name": "Compressor Repair",
+          "description": "कंप्रेसर रिपेयर करवाएं",
+          "estimated_time": 4.0,
+          "cost_estimate": "₹12000-20000",
+          "specialist_required": true,
+          "success_rate": 0.85
+        }
+      ],
+      "optimization": {
+        "token_reduction": 0.72,
+        "skip_generic_steps": ["machine_status", "basic_checks"],
+        "direct_specialist_routing": "electrical_repair"
+      }
+    }
+  ],
+  "pathway_optimization_rules": {
+    "high_confidence_shortcuts": {
+      "conditions": ["intent_confidence > 0.85", "problem_pattern_match"],
+      "actions": ["skip_diagnostic_questions", "direct_to_solution"],
+      "token_savings": 400
+    },
+    "model_specific_optimization": {
+      "3DX Super": {
+        "engine_problems": "direct_to_fuel_filter_check",
+        "token_savings": 250
+      },
+      "3DX Xtra": {
+        "transmission_problems": "direct_to_hydraulic_pressure_check",
+        "token_savings": 300
+      },
+      "3DX Pro": {
+        "ac_problems": "direct_to_compressor_check",
+        "token_savings": 280
+      }
+    },
+    "seasonal_optimization": {
+      "summer": {
+        "ac_problems": "prioritize_gas_refill_check",
+        "hydraulic_problems": "check_overheating_first"
+      },
+      "winter": {
+        "engine_problems": "prioritize_battery_check",
+        "fuel_problems": "check_fuel_quality_first"
+      },
+      "monsoon": {
+        "electrical_problems": "prioritize_water_damage_check",
+        "engine_problems": "check_air_filter_first"
+      }
+    }
+  },
+  "success_metrics": {
+    "pathway_effectiveness": {
+      "first_call_resolution": 0.89,
+      "customer_satisfaction": 4.6,
+      "average_resolution_time": 4.2,
+      "cost_per_resolution": "₹8500"
+    },
+    "optimization_impact": {
+      "token_reduction_achieved": 0.68,
+      "time_reduction_achieved": 0.35,
+      "accuracy_improvement": 0.22,
+      "cost_reduction": 0.25
+    }
+  }
+}

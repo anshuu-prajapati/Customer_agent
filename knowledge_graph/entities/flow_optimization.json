@@ -1,0 +1,254 @@
+{
+  "metadata": {
+    "entity_type": "Flow_Optimization",
+    "description": "IVR conversation flow optimization patterns and decision trees",
+    "optimization_version": "2.1",
+    "last_updated": "2024-05-19",
+    "data_source": "conversation_flow_analysis"
+  },
+  "decision_trees": [
+    {
+      "id": "tree_001",
+      "tree_name": "Problem Classification Tree",
+      "entry_point": "complaint_description",
+      "confidence_threshold": 0.80,
+      "nodes": [
+        {
+          "node_id": "root",
+          "question": "आपकी मशीन में क्या समस्या है?",
+          "type": "open_ended",
+          "branches": [
+            {
+              "condition": "contains_engine_keywords",
+              "next_node": "engine_branch",
+              "confidence": 0.85
+            },
+            {
+              "condition": "contains_hydraulic_keywords", 
+              "next_node": "hydraulic_branch",
+              "confidence": 0.82
+            },
+            {
+              "condition": "contains_electrical_keywords",
+              "next_node": "electrical_branch", 
+              "confidence": 0.88
+            },
+            {
+              "condition": "low_confidence",
+              "next_node": "generic_questioning",
+              "confidence": 0.60
+            }
+          ]
+        },
+        {
+          "node_id": "engine_branch",
+          "question": "इंजन स्टार्ट करने पर कोई आवाज आती है?",
+          "type": "yes_no",
+          "optimization": {
+            "skip_generic_questions": ["machine_status", "basic_checks"],
+            "token_reduction": 0.65,
+            "estimated_resolution": "4.2_hours"
+          },
+          "branches": [
+            {
+              "condition": "yes",
+              "next_node": "starter_motor_check",
+              "specialist": "engine_repair"
+            },
+            {
+              "condition": "no", 
+              "next_node": "battery_fuel_check",
+              "specialist": "engine_repair"
+            }
+          ]
+        },
+        {
+          "node_id": "hydraulic_branch",
+          "question": "तेल कहाँ से निकल रहा है - ऊपर से या नीचे से?",
+          "type": "multiple_choice",
+          "options": ["ऊपर से", "नीचे से", "पता नहीं"],
+          "optimization": {
+            "skip_generic_questions": ["basic_inspection"],
+            "token_reduction": 0.58,
+            "estimated_resolution": "6.5_hours"
+          },
+          "branches": [
+            {
+              "condition": "ऊपर से",
+              "next_node": "hydraulic_cylinder_check",
+              "specialist": "hydraulic_repair"
+            },
+            {
+              "condition": "नीचे से",
+              "next_node": "hydraulic_tank_check", 
+              "specialist": "hydraulic_repair"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tree_002",
+      "tree_name": "Machine Model Optimization Tree",
+      "entry_point": "machine_model_detected",
+      "confidence_threshold": 0.75,
+      "model_specific_flows": {
+        "3DX Super": {
+          "common_problems": ["engine_not_starting", "oil_change", "hydraulic_leak"],
+          "optimized_questions": [
+            "यह 3DX Super मॉडल में आम समस्या है। क्या पहले भी यह प्रॉब्लम आई है?",
+            "इस मॉडल में इंजन की समस्या अक्सर फ्यूल फिल्टर से होती है।"
+          ],
+          "token_reduction": 0.70,
+          "specialist_routing": {
+            "engine_issues": "senior_engine_specialist",
+            "hydraulic_issues": "hydraulic_specialist"
+          }
+        },
+        "3DX Xtra": {
+          "common_problems": ["transmission_problem", "electrical_problem", "brake_system"],
+          "optimized_questions": [
+            "3DX Xtra में ट्रांसमिशन की समस्या आम है। गियर चेंज करने में दिक्कत है?",
+            "इस मॉडल में इलेक्ट्रिकल प्रॉब्लम अक्सर होती है।"
+          ],
+          "token_reduction": 0.68,
+          "specialist_routing": {
+            "transmission_issues": "transmission_specialist",
+            "electrical_issues": "electrical_specialist"
+          }
+        },
+        "3DX Pro": {
+          "common_problems": ["ac_not_working", "engine_not_starting", "oil_change"],
+          "optimized_questions": [
+            "3DX Pro में AC की समस्या गर्मी में आम है। एसी चालू हो रहा है?",
+            "इस मॉडल में कंप्रेसर की समस्या अक्सर होती है।"
+          ],
+          "token_reduction": 0.72,
+          "specialist_routing": {
+            "ac_issues": "electrical_specialist",
+            "engine_issues": "engine_specialist"
+          }
+        }
+      }
+    }
+  ],
+  "conversation_shortcuts": [
+    {
+      "id": "shortcut_001",
+      "shortcut_name": "Repeat Customer Fast Track",
+      "trigger_conditions": [
+        "customer_phone_recognized",
+        "machine_number_in_history",
+        "high_confidence_problem_match"
+      ],
+      "optimizations": {
+        "skip_steps": ["machine_validation", "customer_verification", "basic_information"],
+        "direct_to": "problem_specific_flow",
+        "token_reduction": 0.80,
+        "time_reduction": "60%"
+      },
+      "flow": [
+        "greeting_with_recognition",
+        "problem_confirmation", 
+        "direct_solution_path",
+        "completion"
+      ]
+    },
+    {
+      "id": "shortcut_002", 
+      "shortcut_name": "Critical Issue Fast Track",
+      "trigger_conditions": [
+        "safety_critical_keywords",
+        "high_urgency_indicators",
+        "brake_failure_detected"
+      ],
+      "optimizations": {
+        "skip_steps": ["detailed_questioning", "non_critical_verification"],
+        "direct_to": "emergency_specialist",
+        "priority": "highest",
+        "time_reduction": "70%"
+      },
+      "flow": [
+        "safety_acknowledgment",
+        "immediate_specialist_connection",
+        "emergency_protocol"
+      ]
+    },
+    {
+      "id": "shortcut_003",
+      "shortcut_name": "Routine Service Fast Track", 
+      "trigger_conditions": [
+        "oil_change_keywords",
+        "routine_maintenance_indicators",
+        "scheduled_service_pattern"
+      ],
+      "optimizations": {
+        "skip_steps": ["detailed_problem_analysis", "diagnostic_questions"],
+        "direct_to": "service_scheduling",
+        "token_reduction": 0.75,
+        "time_reduction": "50%"
+      },
+      "flow": [
+        "service_type_confirmation",
+        "scheduling_optimization",
+        "completion"
+      ]
+    }
+  ],
+  "context_optimization": {
+    "pre_built_contexts": {
+      "engine_problems": {
+        "context": "Customer reporting engine issues. Focus on fuel system, battery, starter motor. Common solutions: fuel filter replacement, battery check, starter motor repair.",
+        "token_count": 180,
+        "usage_frequency": 0.28
+      },
+      "hydraulic_problems": {
+        "context": "Customer has hydraulic system issues. Check oil levels, leak locations, pressure systems. Common solutions: seal replacement, oil top-up, pressure adjustment.",
+        "token_count": 195,
+        "usage_frequency": 0.22
+      },
+      "electrical_problems": {
+        "context": "Customer reports electrical issues. Check battery, alternator, fuses, wiring. Common solutions: battery replacement, fuse replacement, wiring repair.",
+        "token_count": 175,
+        "usage_frequency": 0.18
+      }
+    },
+    "dynamic_context_building": {
+      "machine_model_context": {
+        "trigger": "machine_model_identified",
+        "context_addition": "This {model} commonly has {common_problems}. Typical resolution time: {avg_time}.",
+        "token_savings": 150
+      },
+      "historical_context": {
+        "trigger": "repeat_customer_detected",
+        "context_addition": "Customer previously had {past_problems}. Last service: {last_service_date}.",
+        "token_savings": 200
+      },
+      "seasonal_context": {
+        "trigger": "seasonal_problem_pattern",
+        "context_addition": "This is a common {season} problem for {machine_model}. Expected resolution: {expected_time}.",
+        "token_savings": 120
+      }
+    }
+  },
+  "performance_metrics": {
+    "optimization_targets": {
+      "token_reduction": 0.75,
+      "conversation_time_reduction": 0.40,
+      "accuracy_improvement": 0.25,
+      "customer_satisfaction_improvement": 0.15
+    },
+    "current_baselines": {
+      "avg_tokens_per_conversation": 3200,
+      "avg_conversation_time": 4.8,
+      "success_rate": 0.91,
+      "customer_satisfaction": 4.2
+    },
+    "optimized_targets": {
+      "avg_tokens_per_conversation": 800,
+      "avg_conversation_time": 2.9,
+      "success_rate": 0.96,
+      "customer_satisfaction": 4.8
+    }
+  }
+}

@@ -1,0 +1,166 @@
+{
+  "metadata": {
+    "entity_type": "Conversation_Pattern",
+    "description": "IVR conversation flow patterns and optimization data",
+    "total_conversations": 320,
+    "last_updated": "2024-05-19",
+    "data_source": "ivr_conversation_logs"
+  },
+  "conversation_patterns": [
+    {
+      "id": "pattern_001",
+      "pattern_name": "Standard Complaint Registration",
+      "frequency": 0.65,
+      "avg_duration_minutes": 4.2,
+      "avg_turns": 8,
+      "success_rate": 0.92,
+      "common_flow": [
+        "greeting",
+        "collect_machine_no",
+        "confirm_machine_no",
+        "validate_machine",
+        "confirm_phone",
+        "collect_complaint",
+        "collect_status",
+        "collect_city",
+        "final_confirm",
+        "submit"
+      ],
+      "common_issues": [
+        "machine_number_repetition",
+        "hindi_confirmation_understanding",
+        "city_name_variations"
+      ],
+      "optimization_opportunities": {
+        "token_reduction": 0.75,
+        "speed_improvement": 0.40,
+        "accuracy_improvement": 0.15
+      }
+    },
+    {
+      "id": "pattern_002",
+      "pattern_name": "Machine Number Correction Flow",
+      "frequency": 0.18,
+      "avg_duration_minutes": 6.8,
+      "avg_turns": 12,
+      "success_rate": 0.87,
+      "common_flow": [
+        "greeting",
+        "collect_machine_no",
+        "confirm_machine_no",
+        "update_machine_number",
+        "validate_machine",
+        "confirm_phone",
+        "collect_complaint",
+        "collect_status",
+        "collect_city",
+        "final_confirm",
+        "submit"
+      ],
+      "common_issues": [
+        "multiple_corrections",
+        "speech_recognition_errors",
+        "customer_confusion"
+      ],
+      "optimization_opportunities": {
+        "token_reduction": 0.60,
+        "speed_improvement": 0.30,
+        "accuracy_improvement": 0.25
+      }
+    },
+    {
+      "id": "pattern_003",
+      "pattern_name": "Multi-Problem Complaint",
+      "frequency": 0.12,
+      "avg_duration_minutes": 7.5,
+      "avg_turns": 15,
+      "success_rate": 0.89,
+      "common_flow": [
+        "greeting",
+        "collect_machine_no",
+        "confirm_machine_no",
+        "validate_machine",
+        "confirm_phone",
+        "collect_complaint",
+        "add_additional_complaint",
+        "add_additional_complaint",
+        "collect_status",
+        "collect_city",
+        "final_confirm",
+        "submit"
+      ],
+      "common_issues": [
+        "complaint_prioritization",
+        "detailed_description_capture",
+        "time_management"
+      ],
+      "optimization_opportunities": {
+        "token_reduction": 0.50,
+        "speed_improvement": 0.20,
+        "accuracy_improvement": 0.30
+      }
+    },
+    {
+      "id": "pattern_004",
+      "pattern_name": "Quick Service Request",
+      "frequency": 0.05,
+      "avg_duration_minutes": 2.8,
+      "avg_turns": 6,
+      "success_rate": 0.95,
+      "common_flow": [
+        "greeting",
+        "collect_machine_no",
+        "validate_machine",
+        "collect_complaint",
+        "final_confirm",
+        "submit"
+      ],
+      "common_issues": [
+        "missing_confirmation_steps",
+        "incomplete_data_capture"
+      ],
+      "optimization_opportunities": {
+        "token_reduction": 0.80,
+        "speed_improvement": 0.60,
+        "accuracy_improvement": 0.10
+      }
+    }
+  ],
+  "language_patterns": {
+    "hindi_confirmations": {
+      "positive": ["हां", "सही है", "ठीक है", "हां यह सही है", "बिल्कुल सही"],
+      "negative": ["नहीं", "गलत है", "चेंज करना है", "अपडेट करना है"],
+      "frequency": 0.95,
+      "recognition_accuracy": 0.88
+    },
+    "machine_number_formats": {
+      "with_pauses": ["3115। 725", "31 15 और 725", "3115... 725"],
+      "with_corrections": ["31... नहीं 3115", "725 नहीं 3115725"],
+      "frequency": 0.35,
+      "extraction_accuracy": 0.92
+    },
+    "complaint_descriptions": {
+      "common_phrases": [
+        "इंजन स्टार्ट नहीं हो रहा",
+        "तेल निकल रहा है",
+        "एसी काम नहीं कर रहा",
+        "ब्रेक की समस्या है"
+      ],
+      "regional_variations": {
+        "rajasthani": ["बंद पड़ी है", "तेल निकल र्यो", "धक गई"],
+        "frequency": 0.25
+      }
+    }
+  },
+  "performance_metrics": {
+    "avg_tokens_per_conversation": 3200,
+    "avg_api_calls_per_conversation": 2.3,
+    "avg_function_calls_per_conversation": 6.8,
+    "token_cost_per_conversation": 0.032,
+    "success_rate_by_time": {
+      "morning": 0.94,
+      "afternoon": 0.91,
+      "evening": 0.88
+    }
+  }
+}

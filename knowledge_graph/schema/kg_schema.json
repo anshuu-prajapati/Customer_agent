@@ -1,0 +1,244 @@
+{
+  "metadata": {
+    "schema_version": "1.0",
+    "description": "Knowledge Graph schema for Rajesh Motors JCB Service IVR system",
+    "last_updated": "2024-05-19",
+    "total_entity_types": 8,
+    "total_relationship_types": 12
+  },
+  "entity_types": {
+    "JCB_Machine": {
+      "description": "JCB machines in the service network",
+      "properties": {
+        "machine_no": {"type": "string", "required": true, "unique": true},
+        "model": {"type": "string", "required": true},
+        "sub_model": {"type": "string", "required": false},
+        "machine_type": {"type": "enum", "values": ["Warranty", "AMC", "Paid"], "required": true},
+        "purchase_date": {"type": "date", "required": true},
+        "installation_date": {"type": "date", "required": false},
+        "business_partner_code": {"type": "string", "required": false},
+        "warranty_status": {"type": "enum", "values": ["active", "expired"], "required": true},
+        "warranty_expiry": {"type": "date", "required": false}
+      },
+      "indexes": ["machine_no", "model", "customer_id", "city"]
+    },
+    "Customer": {
+      "description": "Customers owning JCB machines",
+      "properties": {
+        "name": {"type": "string", "required": true},
+        "phone": {"type": "string", "required": true, "pattern": "^[6-9]\\d{9}$"},
+        "alternate_phone": {"type": "string", "required": false, "pattern": "^[6-9]\\d{9}$"},
+        "city": {"type": "string", "required": true},
+        "address": {"type": "string", "required": false},
+        "business_type": {"type": "string", "required": false},
+        "registration_date": {"type": "date", "required": true},
+        "preferred_language": {"type": "enum", "values": ["Hindi", "English"], "required": true}
+      },
+      "indexes": ["phone", "name", "city"]
+    },
+    "Service_Complaint": {
+      "description": "Service complaints registered through IVR",
+      "properties": {
+        "complaint_title": {"type": "string", "required": true},
+        "complaint_details": {"type": "string", "required": false},
+        "machine_status": {"type": "enum", "values": ["Breakdown", "Running With Problem"], "required": true},
+        "priority": {"type": "enum", "values": ["low", "medium", "high"], "required": true},
+        "submission_date": {"type": "datetime", "required": true},
+        "resolution_date": {"type": "datetime", "required": false},
+        "status": {"type": "enum", "values": ["pending", "in_progress", "resolved", "cancelled"], "required": true},
+        "customer_satisfaction": {"type": "number", "min": 1, "max": 5, "required": false}
+      },
+      "indexes": ["submission_date", "status", "machine_id", "customer_id"]
+    },
+    "Service_Engineer": {
+      "description": "Service engineers in the network",
+      "properties": {
+        "name": {"type": "string", "required": true},
+        "phone": {"type": "string", "required": true, "pattern": "^[6-9]\\d{9}$"},
+        "employee_id": {"type": "string", "required": true, "unique": true},
+        "branch_code": {"type": "string", "required": true},
+        "specialization": {"type": "array", "items": {"type": "string"}, "required": true},
+        "experience_years": {"type": "number", "min": 0, "required": true},
+        "certification_level": {"type": "enum", "values": ["junior", "intermediate", "senior", "expert"], "required": true}
+      },
+      "indexes": ["employee_id", "branch_code", "specialization"]
+    },
+    "Service_Branch": {
+      "description": "Service branches in the network",
+      "properties": {
+        "branch_code": {"type": "string", "required": true, "unique": true},
+        "branch_name": {"type": "string", "required": true},
+        "address": {"type": "string", "required": true},
+        "coordinates": {"type": "object", "properties": {"lat": "number", "lng": "number"}, "required": true},
+        "is_active": {"type": "boolean", "required": true}
+      },
+      "indexes": ["branch_code", "branch_name"]
+    },
+    "City": {
+      "description": "Cities in service coverage area",
+      "properties": {
+        "city_name": {"type": "string", "required": true, "unique": true},
+        "state": {"type": "string", "required": true},
+        "coordinates": {"type": "object", "properties": {"lat": "number", "lng": "number"}, "required": true}
+      },
+      "indexes": ["city_name", "state"]
+    },
+    "Conversation_Pattern": {
+      "description": "IVR conversation flow patterns",
+      "properties": {
+        "pattern_name": {"type": "string", "required": true},
+        "frequency": {"type": "number", "min": 0, "max": 1, "required": true},
+        "avg_duration_minutes": {"type": "number", "min": 0, "required": true},
+        "avg_turns": {"type": "number", "min": 0, "required": true},
+        "success_rate": {"type": "number", "min": 0, "max": 1, "required": true},
+        "common_flow": {"type": "array", "items": {"type": "string"}, "required": true}
+      },
+      "indexes": ["pattern_name", "frequency"]
+    },
+    "Problem_Pattern": {
+      "description": "Analyzed patterns of machine problems",
+      "properties": {
+        "problem_type": {"type": "string", "required": true},
+        "machine_model": {"type": "string", "required": true},
+        "frequency": {"type": "number", "min": 0, "max": 1, "required": true},
+        "avg_resolution_time": {"type": "number", "min": 0, "required": true},
+        "seasonal_pattern": {"type": "string", "required": false},
+        "cost_range": {"type": "object", "properties": {"min": "number", "max": "number"}, "required": false}
+      },
+      "indexes": ["problem_type", "machine_model", "frequency"]
+    }
+  },
+  "relationship_types": {
+    "OWNS": {
+      "description": "Customer owns a machine",
+      "source_types": ["Customer"],
+      "target_types": ["JCB_Machine"],
+      "properties": {
+        "ownership_start_date": {"type": "date", "required": true},
+        "purchase_type": {"type": "enum", "values": ["new", "used"], "required": true},
+        "financing": {"type": "enum", "values": ["cash", "loan", "lease"], "required": false}
+      }
+    },
+    "LOCATED_IN": {
+      "description": "Entity is located in a city",
+      "source_types": ["Customer", "JCB_Machine", "Service_Engineer"],
+      "target_types": ["City"],
+      "properties": {
+        "since_date": {"type": "date", "required": false}
+      }
+    },
+    "SERVES": {
+      "description": "Branch serves a city",
+      "source_types": ["Service_Branch"],
+      "target_types": ["City"],
+      "properties": {
+        "primary_coverage": {"type": "boolean", "required": true},
+        "response_time_hours": {"type": "number", "min": 0, "required": true},
+        "coverage_radius_km": {"type": "number", "min": 0, "required": true}
+      }
+    },
+    "WORKS_AT": {
+      "description": "Engineer works at a branch",
+      "source_types": ["Service_Engineer"],
+      "target_types": ["Service_Branch"],
+      "properties": {
+        "start_date": {"type": "date", "required": true},
+        "role": {"type": "string", "required": false}
+      }
+    },
+    "HAS_COMPLAINT": {
+      "description": "Machine has a service complaint",
+      "source_types": ["JCB_Machine"],
+      "target_types": ["Service_Complaint"],
+      "properties": {
+        "complaint_number": {"type": "number", "required": false}
+      }
+    },
+    "SUBMITTED_BY": {
+      "description": "Complaint submitted by customer",
+      "source_types": ["Service_Complaint"],
+      "target_types": ["Customer"],
+      "properties": {
+        "submission_method": {"type": "enum", "values": ["ivr", "phone", "online"], "required": true}
+      }
+    },
+    "RESOLVES": {
+      "description": "Engineer resolves a complaint",
+      "source_types": ["Service_Engineer"],
+      "target_types": ["Service_Complaint"],
+      "properties": {
+        "resolution_date": {"type": "datetime", "required": true},
+        "resolution_time_hours": {"type": "number", "min": 0, "required": true},
+        "parts_cost": {"type": "number", "min": 0, "required": false},
+        "labor_cost": {"type": "number", "min": 0, "required": false},
+        "first_call_resolution": {"type": "boolean", "required": true}
+      }
+    },
+    "FOLLOWS_PATTERN": {
+      "description": "Conversation follows a pattern",
+      "source_types": ["Service_Complaint"],
+      "target_types": ["Conversation_Pattern"],
+      "properties": {
+        "pattern_match_score": {"type": "number", "min": 0, "max": 1, "required": true}
+      }
+    },
+    "EXHIBITS_PROBLEM": {
+      "description": "Machine exhibits a problem pattern",
+      "source_types": ["JCB_Machine"],
+      "target_types": ["Problem_Pattern"],
+      "properties": {
+        "occurrence_count": {"type": "number", "min": 0, "required": true},
+        "last_occurrence": {"type": "date", "required": false}
+      }
+    },
+    "SIMILAR_TO": {
+      "description": "Entities are similar (for recommendations)",
+      "source_types": ["JCB_Machine", "Customer", "Service_Complaint"],
+      "target_types": ["JCB_Machine", "Customer", "Service_Complaint"],
+      "properties": {
+        "similarity_score": {"type": "number", "min": 0, "max": 1, "required": true},
+        "similarity_type": {"type": "string", "required": true}
+      }
+    },
+    "PREDICTS": {
+      "description": "Pattern predicts future problems",
+      "source_types": ["Problem_Pattern"],
+      "target_types": ["JCB_Machine"],
+      "properties": {
+        "prediction_confidence": {"type": "number", "min": 0, "max": 1, "required": true},
+        "predicted_timeframe_days": {"type": "number", "min": 0, "required": true}
+      }
+    },
+    "OPTIMIZES": {
+      "description": "Pattern optimizes conversation flow",
+      "source_types": ["Conversation_Pattern"],
+      "target_types": ["Service_Complaint"],
+      "properties": {
+        "optimization_score": {"type": "number", "min": 0, "max": 1, "required": true},
+        "token_reduction": {"type": "number", "min": 0, "max": 1, "required": true}
+      }
+    }
+  },
+  "query_patterns": {
+    "machine_validation": {
+      "description": "Validate machine and get customer details",
+      "cypher": "MATCH (m:JCB_Machine {machine_no: $machineNo})-[:OWNED_BY]->(c:Customer) RETURN m, c"
+    },
+    "service_history": {
+      "description": "Get service history for a machine",
+      "cypher": "MATCH (m:JCB_Machine {machine_no: $machineNo})-[:HAS_COMPLAINT]->(comp:Service_Complaint) RETURN comp ORDER BY comp.submission_date DESC"
+    },
+    "engineer_assignment": {
+      "description": "Find best engineer for a complaint",
+      "cypher": "MATCH (c:City {city_name: $city})<-[:SERVES]-(b:Service_Branch)<-[:WORKS_AT]-(e:Service_Engineer) WHERE $specialization IN e.specialization RETURN e ORDER BY e.avg_resolution_time ASC LIMIT 1"
+    },
+    "similar_problems": {
+      "description": "Find similar problems for predictive suggestions",
+      "cypher": "MATCH (m:JCB_Machine {model: $model})-[:EXHIBITS_PROBLEM]->(p:Problem_Pattern) WHERE p.problem_type = $problemType RETURN p"
+    },
+    "conversation_optimization": {
+      "description": "Get conversation pattern for optimization",
+      "cypher": "MATCH (cp:Conversation_Pattern) WHERE cp.frequency > 0.1 RETURN cp ORDER BY cp.frequency DESC"
+    }
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "metadata": {
+    "entity_type": "Service_Area",
+    "description": "Service coverage areas and specialist availability for routing optimization",
+    "total_areas": 7,
+    "last_updated": "2024-05-19",
+    "data_source": "service_coverage_analysis"
+  },
+  "service_areas": [
+    {
+      "id": "area_001",
+      "area_name": "JAIPUR_REGION",
+      "branch_code": "4",
+      "cities_covered": ["JAIPUR", "DAUSA", "KARAULI", "TONK", "KOTPUTLI", "NEEM KA THANA"],
+      "specialist_availability": {
+        "engine_repair": 3,
+        "hydraulic_repair": 2,
+        "electrical_repair": 2,
+        "transmission_repair": 1,
+        "brake_repair": 2
+      },
+      "common_problems": ["engine_not_starting", "oil_change_service", "ac_not_working"],
+      "avg_response_time": 4.2,
+      "customer_satisfaction": 4.4,
+      "optimization_notes": "High volume area, good specialist coverage"
+    },
+    {
+      "id": "area_002",
+      "area_name": "KOTA_REGION", 
+      "branch_code": "5",
+      "cities_covered": ["KOTA", "JHALAWAR", "RAMGANJMANDI"],
+      "specialist_availability": {
+        "engine_repair": 2,
+        "hydraulic_repair": 3,
+        "electrical_repair": 1,
+        "transmission_repair": 2,
+        "brake_repair": 2
+      },
+      "common_problems": ["hydraulic_oil_leakage", "transmission_problem", "brake_system_problem"],
+      "avg_response_time": 5.1,
+      "customer_satisfaction": 4.6,
+      "optimization_notes": "Strong hydraulic specialist coverage"
+    },
+    {
+      "id": "area_003",
+      "area_name": "UDAIPUR_REGION",
+      "branch_code": "7", 
+      "cities_covered": ["UDAIPUR", "DUNGARPUR", "BANSWARA", "RAJSAMAND"],
+      "specialist_availability": {
+        "engine_repair": 2,
+        "hydraulic_repair": 2,
+        "electrical_repair": 3,
+        "transmission_repair": 1,
+        "brake_repair": 1
+      },
+      "common_problems": ["ac_not_working", "engine_not_starting", "electrical_problem"],
+      "avg_response_time": 4.8,
+      "customer_satisfaction": 4.2,
+      "optimization_notes": "Strong electrical specialist coverage"
+    },
+    {
+      "id": "area_004",
+      "area_name": "AJMER_REGION",
+      "branch_code": "1",
+      "cities_covered": ["AJMER", "KEKRI"],
+      "specialist_availability": {
+        "engine_repair": 2,
+        "hydraulic_repair": 1,
+        "electrical_repair": 1,
+        "transmission_repair": 1,
+        "brake_repair": 1
+      },
+      "common_problems": ["engine_not_starting", "hydraulic_oil_leakage"],
+      "avg_response_time": 4.5,
+      "customer_satisfaction": 4.3,
+      "optimization_notes": "Balanced coverage, medium volume"
+    },
+    {
+      "id": "area_005",
+      "area_name": "ALWAR_REGION",
+      "branch_code": "2",
+      "cities_covered": ["ALWAR", "BHARATPUR", "BHIWADI", "DHOLPUR"],
+      "specialist_availability": {
+        "engine_repair": 2,
+        "hydraulic_repair": 2,
+        "electrical_repair": 2,
+        "transmission_repair": 1,
+        "brake_repair": 1
+      },
+      "common_problems": ["engine_not_starting", "electrical_problem"],
+      "avg_response_time": 4.7,
+      "customer_satisfaction": 4.1,
+      "optimization_notes": "Good coverage for electrical issues"
+    },
+    {
+      "id": "area_006",
+      "area_name": "BHILWARA_REGION",
+      "branch_code": "3",
+      "cities_covered": ["BHILWARA", "NIMBAHERA", "PRATAPGARH"],
+      "specialist_availability": {
+        "engine_repair": 1,
+        "hydraulic_repair": 2,
+        "electrical_repair": 1,
+        "transmission_repair": 1,
+        "brake_repair": 1
+      },
+      "common_problems": ["hydraulic_oil_leakage", "engine_not_starting"],
+      "avg_response_time": 5.2,
+      "customer_satisfaction": 4.0,
+      "optimization_notes": "Limited coverage, prioritize hydraulic issues"
+    },
+    {
+      "id": "area_007",
+      "area_name": "SIKAR_REGION",
+      "branch_code": "6",
+      "cities_covered": ["SIKAR", "JHUNJHUNU", "SUJANGARH"],
+      "specialist_availability": {
+        "engine_repair": 1,
+        "hydraulic_repair": 1,
+        "electrical_repair": 1,
+        "transmission_repair": 1,
+        "brake_repair": 1
+      },
+      "common_problems": ["engine_not_starting", "electrical_problem"],
+      "avg_response_time": 5.5,
+      "customer_satisfaction": 3.9,
+      "optimization_notes": "Limited coverage, basic specialist availability"
+    }
+  ],
+  "routing_optimization": {
+    "high_priority_areas": ["JAIPUR_REGION", "KOTA_REGION", "UDAIPUR_REGION"],
+    "specialist_routing_rules": {
+      "engine_problems": "Route to JAIPUR or AJMER first",
+      "hydraulic_problems": "Route to KOTA or BHILWARA first", 
+      "electrical_problems": "Route to UDAIPUR or ALWAR first",
+      "transmission_problems": "Route to KOTA or JAIPUR first",
+      "ac_problems": "Route to UDAIPUR first (summer priority)"
+    },
+    "overflow_routing": {
+      "if_primary_unavailable": "Route to nearest area with 2+ specialists",
+      "emergency_cases": "Route to JAIPUR (highest capacity)"
+    }
+  }
+}

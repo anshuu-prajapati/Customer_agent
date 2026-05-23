@@ -1,0 +1,118 @@
+{
+  "metadata": {
+    "entity_type": "Machine_Model",
+    "description": "JCB machine models with common problem patterns for flow optimization",
+    "total_models": 3,
+    "last_updated": "2024-05-19",
+    "data_source": "service_pattern_analysis"
+  },
+  "machine_models": [
+    {
+      "id": "model_001",
+      "model_name": "3DX Super",
+      "model_type": "BHL",
+      "common_problems": [
+        {
+          "problem_type": "engine_not_starting",
+          "frequency": 0.28,
+          "typical_causes": ["fuel_filter", "battery", "starter_motor"],
+          "avg_resolution_time": 4.2,
+          "seasonal_pattern": "higher_in_winter"
+        },
+        {
+          "problem_type": "hydraulic_oil_leakage", 
+          "frequency": 0.18,
+          "typical_causes": ["cylinder_seals", "hydraulic_hoses", "tank_connections"],
+          "avg_resolution_time": 6.5,
+          "seasonal_pattern": "higher_in_summer"
+        },
+        {
+          "problem_type": "oil_change_service",
+          "frequency": 0.22,
+          "typical_causes": ["routine_maintenance"],
+          "avg_resolution_time": 1.8,
+          "seasonal_pattern": "consistent"
+        }
+      ],
+      "optimization_notes": "Most common model, fuel filter issues frequent",
+      "specialist_preference": "engine_repair"
+    },
+    {
+      "id": "model_002", 
+      "model_name": "3DX Xtra",
+      "model_type": "BHL",
+      "common_problems": [
+        {
+          "problem_type": "transmission_problem",
+          "frequency": 0.31,
+          "typical_causes": ["hydraulic_pressure", "gear_shifting", "clutch_system"],
+          "avg_resolution_time": 8.2,
+          "seasonal_pattern": "consistent"
+        },
+        {
+          "problem_type": "electrical_problem",
+          "frequency": 0.24,
+          "typical_causes": ["battery_issues", "wiring_problems", "fuse_failures"],
+          "avg_resolution_time": 5.1,
+          "seasonal_pattern": "higher_in_monsoon"
+        },
+        {
+          "problem_type": "brake_system_problem",
+          "frequency": 0.19,
+          "typical_causes": ["brake_fluid", "brake_pads", "hydraulic_system"],
+          "avg_resolution_time": 4.8,
+          "seasonal_pattern": "consistent"
+        }
+      ],
+      "optimization_notes": "Transmission problems are signature issue",
+      "specialist_preference": "transmission_repair"
+    },
+    {
+      "id": "model_003",
+      "model_name": "3DX Pro", 
+      "model_type": "BHL",
+      "common_problems": [
+        {
+          "problem_type": "ac_not_working",
+          "frequency": 0.35,
+          "typical_causes": ["refrigerant_gas", "compressor_failure", "electrical_issues"],
+          "avg_resolution_time": 3.2,
+          "seasonal_pattern": "higher_in_summer"
+        },
+        {
+          "problem_type": "engine_not_starting",
+          "frequency": 0.26,
+          "typical_causes": ["battery", "fuel_system", "starter_motor"],
+          "avg_resolution_time": 4.8,
+          "seasonal_pattern": "higher_in_winter"
+        },
+        {
+          "problem_type": "oil_change_service",
+          "frequency": 0.21,
+          "typical_causes": ["routine_maintenance"],
+          "avg_resolution_time": 1.9,
+          "seasonal_pattern": "consistent"
+        }
+      ],
+      "optimization_notes": "AC problems are signature issue, especially in summer",
+      "specialist_preference": "electrical_repair"
+    }
+  ],
+  "model_optimization_rules": {
+    "3DX Super": {
+      "primary_optimization": "fuel_filter_check_first",
+      "token_savings": 250,
+      "context_enhancement": "This 3DX Super model commonly has fuel filter issues (35% of engine problems). Check fuel filter first."
+    },
+    "3DX Xtra": {
+      "primary_optimization": "transmission_focus",
+      "token_savings": 300,
+      "context_enhancement": "3DX Xtra transmission problems are common (31% of complaints). Focus on hydraulic pressure checks."
+    },
+    "3DX Pro": {
+      "primary_optimization": "ac_system_priority",
+      "token_savings": 280,
+      "context_enhancement": "3DX Pro AC issues peak in summer (60% increase). Compressor problems are frequent."
+    }
+  }
+}

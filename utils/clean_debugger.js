@@ -122,12 +122,11 @@ export function logCallEnd(callSid, reason, callData) {
     console.log(`📞 CALL END | SID: ${callSid.slice(-8)} | Reason: ${reason}`);
     
     if (callData && callData.extractedData) {
-        const { machine_no, complaint_title, city, customer_phone } = callData.extractedData;
+        const { machine_no, complaint_title, city } = callData.extractedData;
         console.log(`📋 FINAL DATA:`);
         if (machine_no) console.log(`   • Machine: ${machine_no}`);
         if (complaint_title) console.log(`   • Complaint: ${complaint_title}`);
         if (city) console.log(`   • City: ${city}`);
-        if (customer_phone) console.log(`   • Phone: ${customer_phone}`);
     }
 
     // 💰 COST CALCULATION
@@ -346,7 +345,7 @@ export function logSubmission(callData, apiResponse) {
     console.log(`   Complaint: ${callData.extractedData.complaint_title}`);
     console.log(`   Status: ${callData.extractedData.machine_status}`);
     console.log(`   City: ${callData.extractedData.city}`);
-    console.log(`   Phone: ${callData.extractedData.customer_phone}`);
+    // NOTE: Phone removed - auto-filled from Twilio callingNumber
     
     if (apiResponse?.complaint_id) {
         console.log(`   Complaint ID: ${apiResponse.complaint_id}`);

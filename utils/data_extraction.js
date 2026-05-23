@@ -187,19 +187,9 @@ export function extractAllData(text, cur = {}) {
         }
     }
 
-    // ── Phone (10 digit Indian) ───────────────────────────────────
-    if (!cur.customer_phone || !/^[6-9]\d{9}$/.test(cur.customer_phone)) {
-        const compact = text.replace(/[\s\-,।\.]/g, "");
-        const nums = compact.match(/\d+/g) || [];
-        for (const seq of nums) {
-            if (/^[6-9]\d{9}$/.test(seq)) { ex.customer_phone = seq; break; }
-            for (let i = 0; i <= seq.length - 10; i++) {
-                const ch = seq.slice(i, i + 10);
-                if (/^[6-9]\d{9}$/.test(ch)) { ex.customer_phone = ch; break; }
-            }
-            if (ex.customer_phone) break;
-        }
-    }
+    // ── Phone number extraction removed ───────────────────────────────────
+    // Phone numbers are now auto-filled from Twilio callingNumber during submission
+    // No need to extract phone numbers from user input
 
     // ── City (Devanagari + English + Rajasthani variants) ─────────
     if (!cur.city) {

@@ -17,7 +17,7 @@ import {
     MACHINE_STATUS_CONTEXT,
     CITY_CONTEXT,
     CITY_CONFIRM_CONTEXT,
-    PHONE_COLLECT_CONTEXT,
+    // PHONE_COLLECT_CONTEXT removed - phone collection eliminated
     FINAL_CONFIRM_CONTEXT,
     SIDE_QUESTION_CONTEXT,
     FUNCTION_CALLING_CONTEXT,
@@ -288,8 +288,7 @@ function getStateSpecificContext(state) {
         case STATES.CONFIRM_CITY:
             return CITY_CONFIRM_CONTEXT;
         
-        case STATES.COLLECT_PHONE:
-            return PHONE_COLLECT_CONTEXT;
+        // NOTE: COLLECT_PHONE removed — phone auto-filled from Twilio callingNumber
         
         case STATES.FINAL_CONFIRM:
         case STATES.SUBMIT:
@@ -456,7 +455,7 @@ function getStateDescription(state) {
         [STATES.COLLECT_STATUS]: 'Collect machine status (band/chal rahi)',
         [STATES.COLLECT_CITY]: 'Collect city/location',
         [STATES.CONFIRM_CITY]: 'Confirm city and branch',
-        [STATES.COLLECT_PHONE]: 'Collect phone number',
+        // NOTE: COLLECT_PHONE removed — phone auto-filled from Twilio callingNumber
         [STATES.FINAL_CONFIRM]: 'Final confirmation before submit',
         [STATES.SUBMIT]: 'Submitting complaint',
         [STATES.COMPLETED]: 'Call completed'

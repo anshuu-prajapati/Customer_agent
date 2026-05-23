@@ -1,0 +1,270 @@
+{
+  "metadata": {
+    "entity_type": "Intent_Pattern",
+    "description": "Customer intent recognition patterns for IVR flow optimization",
+    "total_intents_analyzed": 1250,
+    "last_updated": "2024-05-19",
+    "data_source": "conversation_analysis"
+  },
+  "intent_patterns": [
+    {
+      "id": "intent_001",
+      "intent_name": "engine_not_starting",
+      "confidence_threshold": 0.85,
+      "hindi_phrases": [
+        "इंजन स्टार्ट नहीं हो रहा",
+        "गाड़ी चालू नहीं हो रही",
+        "स्टार्ट नहीं हो रहा है",
+        "इंजन बंद पड़ा है",
+        "चालू करने पर कुछ नहीं हो रहा"
+      ],
+      "english_phrases": [
+        "engine not starting",
+        "machine won't start",
+        "starting problem",
+        "engine dead"
+      ],
+      "regional_variations": {
+        "rajasthani": ["इंजन धक गयो", "गाड़ी बंद पड़ी"],
+        "haryanvi": ["इंजन नहीं चल रहा", "गाड़ी खराब है"]
+      },
+      "frequency": 0.28,
+      "optimized_flow": {
+        "next_questions": [
+          "क्या आपने फ्यूल चेक किया है?",
+          "बैटरी की लाइट आ रही है क्या?",
+          "कोई आवाज आ रही है स्टार्ट करने पर?"
+        ],
+        "skip_generic_questions": true,
+        "direct_to_specialist": "engine_repair",
+        "estimated_resolution_time": 4.2
+      },
+      "token_optimization": {
+        "pre_built_context": "Customer has engine starting issue. Focus on fuel, battery, starter motor diagnostics.",
+        "token_reduction": 0.65,
+        "context_length": 180
+      }
+    },
+    {
+      "id": "intent_002", 
+      "intent_name": "hydraulic_oil_leakage",
+      "confidence_threshold": 0.82,
+      "hindi_phrases": [
+        "तेल निकल रहा है",
+        "हाइड्रोलिक ऑयल लीक हो रहा",
+        "तेल की समस्या है",
+        "ऑयल लीकेज है",
+        "नीचे तेल गिर रहा"
+      ],
+      "english_phrases": [
+        "oil leaking",
+        "hydraulic oil leak",
+        "oil problem",
+        "leakage issue"
+      ],
+      "regional_variations": {
+        "rajasthani": ["तेल निकल र्यो", "ऑयल गिर र्यो"],
+        "haryanvi": ["तेल बह रहा है", "लीकेज हो गई"]
+      },
+      "frequency": 0.22,
+      "optimized_flow": {
+        "next_questions": [
+          "कहाँ से तेल निकल रहा है?",
+          "कितना तेल निकल रहा है?",
+          "कब से यह समस्या है?"
+        ],
+        "skip_generic_questions": false,
+        "direct_to_specialist": "hydraulic_repair",
+        "estimated_resolution_time": 6.5
+      },
+      "token_optimization": {
+        "pre_built_context": "Customer reports hydraulic oil leakage. Identify leak location and severity.",
+        "token_reduction": 0.58,
+        "context_length": 195
+      }
+    },
+    {
+      "id": "intent_003",
+      "intent_name": "ac_not_working", 
+      "confidence_threshold": 0.88,
+      "hindi_phrases": [
+        "एसी काम नहीं कर रहा",
+        "ठंडक नहीं आ रही",
+        "एयर कंडीशनर खराब है",
+        "एसी चालू नहीं हो रहा",
+        "हवा ठंडी नहीं आ रही"
+      ],
+      "english_phrases": [
+        "ac not working",
+        "air conditioner problem",
+        "cooling issue",
+        "ac not cooling"
+      ],
+      "regional_variations": {
+        "rajasthani": ["एसी ठंडक नहीं दे रहा", "हवा गरम आ रही"],
+        "haryanvi": ["एसी खराब हो गया", "ठंडा नहीं कर रहा"]
+      },
+      "frequency": 0.18,
+      "optimized_flow": {
+        "next_questions": [
+          "एसी चालू हो रहा है या नहीं?",
+          "हवा आ रही है लेकिन ठंडी नहीं?",
+          "कोई आवाज आ रही है एसी से?"
+        ],
+        "skip_generic_questions": true,
+        "direct_to_specialist": "electrical_repair",
+        "estimated_resolution_time": 3.2
+      },
+      "token_optimization": {
+        "pre_built_context": "Customer has AC cooling problem. Check compressor, refrigerant, electrical connections.",
+        "token_reduction": 0.72,
+        "context_length": 165
+      }
+    },
+    {
+      "id": "intent_004",
+      "intent_name": "transmission_problem",
+      "confidence_threshold": 0.79,
+      "hindi_phrases": [
+        "गियर की समस्या है",
+        "ट्रांसमिशन प्रॉब्लम है",
+        "गियर चेंज नहीं हो रहा",
+        "गाड़ी आगे पीछे नहीं जा रही",
+        "स्पीड नहीं बढ़ रही"
+      ],
+      "english_phrases": [
+        "transmission problem",
+        "gear issue",
+        "gearbox problem",
+        "shifting problem"
+      ],
+      "regional_variations": {
+        "rajasthani": ["गियर अटक गयो", "ट्रांसमिशन खराब"],
+        "haryanvi": ["गियर नहीं बदल रहा", "स्पीड की समस्या"]
+      },
+      "frequency": 0.15,
+      "optimized_flow": {
+        "next_questions": [
+          "कौन सा गियर काम नहीं कर रहा?",
+          "गियर चेंज करते समय कोई आवाज आती है?",
+          "मशीन की स्पीड कैसी है?"
+        ],
+        "skip_generic_questions": false,
+        "direct_to_specialist": "transmission_repair",
+        "estimated_resolution_time": 8.2
+      },
+      "token_optimization": {
+        "pre_built_context": "Customer has transmission/gearbox issues. Focus on gear shifting, hydraulic pressure, clutch system.",
+        "token_reduction": 0.55,
+        "context_length": 210
+      }
+    },
+    {
+      "id": "intent_005",
+      "intent_name": "brake_system_problem",
+      "confidence_threshold": 0.84,
+      "hindi_phrases": [
+        "ब्रेक की समस्या है",
+        "ब्रेक काम नहीं कर रहा",
+        "रुकने में दिक्कत है",
+        "ब्रेक लग नहीं रहा",
+        "ब्रेक फेल हो गया"
+      ],
+      "english_phrases": [
+        "brake problem",
+        "brake not working",
+        "braking issue",
+        "brake failure"
+      ],
+      "regional_variations": {
+        "rajasthani": ["ब्रेक धक गयो", "रुकने में परेशानी"],
+        "haryanvi": ["ब्रेक खराब है", "रुक नहीं रहा"]
+      },
+      "frequency": 0.12,
+      "optimized_flow": {
+        "next_questions": [
+          "ब्रेक दबाने पर कोई आवाज आती है?",
+          "ब्रेक पेडल कैसा लग रहा है?",
+          "मशीन रुकने में कितना समय लेती है?"
+        ],
+        "skip_generic_questions": false,
+        "direct_to_specialist": "brake_repair",
+        "estimated_resolution_time": 4.8
+      },
+      "token_optimization": {
+        "pre_built_context": "Customer reports brake system problems. Check brake fluid, pads, hydraulic system safety critical.",
+        "token_reduction": 0.62,
+        "context_length": 185
+      }
+    },
+    {
+      "id": "intent_006",
+      "intent_name": "electrical_problem",
+      "confidence_threshold": 0.81,
+      "hindi_phrases": [
+        "बिजली की समस्या है",
+        "इलेक्ट्रिकल प्रॉब्लम है",
+        "लाइट नहीं जल रही",
+        "बैटरी की समस्या",
+        "वायरिंग में दिक्कत"
+      ],
+      "english_phrases": [
+        "electrical problem",
+        "wiring issue",
+        "battery problem",
+        "lights not working"
+      ],
+      "regional_variations": {
+        "rajasthani": ["बिजली गुल है", "लाइट नहीं आ रही"],
+        "haryanvi": ["करंट की समस्या", "बैटरी डाउन है"]
+      },
+      "frequency": 0.10,
+      "optimized_flow": {
+        "next_questions": [
+          "कौन सी लाइट काम नहीं कर रही?",
+          "बैटरी चार्ज हो रही है?",
+          "कोई फ्यूज उड़ा है क्या?"
+        ],
+        "skip_generic_questions": true,
+        "direct_to_specialist": "electrical_repair",
+        "estimated_resolution_time": 5.1
+      },
+      "token_optimization": {
+        "pre_built_context": "Customer has electrical system issues. Check battery, alternator, fuses, wiring connections.",
+        "token_reduction": 0.68,
+        "context_length": 175
+      }
+    }
+  ],
+  "confidence_mapping": {
+    "high_confidence": {
+      "threshold": 0.85,
+      "action": "direct_flow_optimization",
+      "token_reduction": 0.70
+    },
+    "medium_confidence": {
+      "threshold": 0.75,
+      "action": "guided_questioning",
+      "token_reduction": 0.45
+    },
+    "low_confidence": {
+      "threshold": 0.60,
+      "action": "generic_flow",
+      "token_reduction": 0.20
+    }
+  },
+  "flow_optimization_rules": {
+    "skip_machine_validation": {
+      "conditions": ["high_confidence_intent", "repeat_customer"],
+      "token_savings": 450
+    },
+    "pre_populate_context": {
+      "conditions": ["known_machine_model", "historical_problems"],
+      "token_savings": 320
+    },
+    "direct_specialist_routing": {
+      "conditions": ["critical_safety_issue", "high_confidence_intent"],
+      "time_savings": "40%"
+    }
+  }
+}

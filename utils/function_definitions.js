@@ -2,12 +2,12 @@
    🔧 AZURE OPENAI FUNCTION DEFINITIONS - PHASE 1
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    
-   Phase 1: Core Data Capture Functions (5 functions)
+   Phase 1: Core Data Capture Functions (4 functions)
    - capture_machine_number
    - capture_complaint
    - capture_machine_status
    - capture_city
-   - capture_phone_number
+   NOTE: capture_phone_number removed — phone auto-filled from Twilio callingNumber
    
    These functions allow the LLM to capture and store user data
    during the conversation.
@@ -92,23 +92,7 @@ export function getPhase1Functions() {
                 }
             }
         },
-        {
-            type: "function",
-            function: {
-                name: "capture_phone_number",
-                description: "Capture customer's 10-digit mobile phone number. Call this when customer provides their phone number or mobile number.",
-                parameters: {
-                    type: "object",
-                    properties: {
-                        customer_phone: {
-                            type: "string",
-                            description: "10-digit phone number starting with 6, 7, 8, or 9 (e.g., '9876543210')"
-                        }
-                    },
-                    required: ["customer_phone"]
-                }
-            }
-        },
+        // NOTE: capture_phone_number removed — phone auto-filled from Twilio callingNumber
         {
             type: "function",
             function: {
@@ -202,27 +186,7 @@ export function getPhase2Functions() {
                 }
             }
         },
-        {
-            type: "function",
-            function: {
-                name: "update_phone_number",
-                description: "Update/correct the phone number when customer wants to change it. Call this function WITHOUT arguments first - it will ask for the new number. Then call again WITH the new number once customer provides it.",
-                parameters: {
-                    type: "object",
-                    properties: {
-                        new_customer_phone: {
-                            type: "string",
-                            description: "New/corrected 10-digit phone number starting with 6, 7, 8, or 9. Only provide if customer has already given the new number."
-                        },
-                        reason: {
-                            type: "string",
-                            description: "Why customer is correcting (optional)"
-                        }
-                    },
-                    required: [] // No required fields - can call without arguments
-                }
-            }
-        },
+        // NOTE: update_phone_number removed — phone auto-filled from Twilio callingNumber
         {
             type: "function",
             function: {
@@ -331,23 +295,7 @@ export function getPhase4Functions() {
                 }
             }
         },
-        {
-            type: "function",
-            function: {
-                name: "validate_phone_format",
-                description: "Validate phone number format to ensure it's a valid 10-digit Indian mobile number. Call this when customer provides a phone number to check if format is correct.",
-                parameters: {
-                    type: "object",
-                    properties: {
-                        phone_number: {
-                            type: "string",
-                            description: "Phone number to validate (should be 10 digits starting with 6, 7, 8, or 9)"
-                        }
-                    },
-                    required: ["phone_number"]
-                }
-            }
-        },
+        // NOTE: validate_phone_format removed — phone auto-filled from Twilio callingNumber
         {
             type: "function",
             function: {

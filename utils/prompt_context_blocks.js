@@ -183,11 +183,8 @@ Function: confirm_city_and_branch(confirmed=true, city="...", branch="...")`;
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    📱 STATE 8: COLLECT PHONE NUMBER (MINIMAL)
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-export const PHONE_COLLECT_CONTEXT = `
-=== 🎯 TASK: Get Phone Number ===
-Ask: "Aapka mobile number? 10 digit ka number bataiye."
-Format: 10 digits, starts with 6-9 (e.g., 9876543210)
-Function: capture_phone_number(customer_phone="9876543210")`;
+// NOTE: PHONE_COLLECT_CONTEXT removed - phone number collection eliminated
+// Phone numbers are now auto-filled from Twilio callingNumber during submission
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    ✅ STATE 9: FINAL CONFIRMATION (MINIMAL)
@@ -298,9 +295,7 @@ export function buildDataStatusContext(extractedData, customerData) {
         collected.push(`✅ city: ${d.city}`);
     }
     
-    if (d.customer_phone) {
-        collected.push(`✅ phone: ${d.customer_phone}`);
-    }
+    // NOTE: customer_phone removed - auto-filled from Twilio callingNumber
     
     if (collected.length === 0) {
         return '\n=== DATA COLLECTED ===\nNothing yet - starting fresh';
@@ -364,14 +359,14 @@ export const FUNCTION_CALLING_CONTEXT = `
 • capture_complaint(complaint_title, complaint_details)
 • capture_machine_status(machine_status)
 • capture_city(city)
-• capture_phone_number(customer_phone)
+// NOTE: capture_phone_number removed - phone auto-filled from Twilio callingNumber
 
-**Phase 2 - Update (5):**
+**Phase 2 - Update (4):**
 • update_machine_number(new_machine_no, reason)
 • update_complaint(new_complaint_title, new_complaint_details, reason)
 • update_city(new_city, reason)
-• update_phone_number(new_customer_phone, reason)
 • update_machine_status(new_machine_status, reason)
+// NOTE: update_phone_number removed - phone auto-filled from Twilio callingNumber
 
 **Phase 3 - Confirm (1):**
 • confirm_city_and_branch(confirmed, city, branch)
@@ -413,7 +408,7 @@ export default {
     MACHINE_STATUS_CONTEXT,
     CITY_CONTEXT,
     CITY_CONFIRM_CONTEXT,
-    PHONE_COLLECT_CONTEXT,
+    // PHONE_COLLECT_CONTEXT removed - phone collection eliminated
     FINAL_CONFIRM_CONTEXT,
     SIDE_QUESTION_CONTEXT,
     FUNCTION_CALLING_CONTEXT,

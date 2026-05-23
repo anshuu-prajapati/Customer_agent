@@ -333,7 +333,8 @@ class KGFlowDirector {
      * Calculate how much data user provided vs what's needed
      */
     calculateDataCompleteness(extractedData, existingData) {
-        const requiredFields = ['machine_no', 'complaint_title', 'machine_status', 'city', 'customer_phone'];
+        const requiredFields = ['machine_no', 'complaint_title', 'machine_status', 'city'];
+        // NOTE: customer_phone removed — auto-filled from Twilio callingNumber
         const allData = { ...existingData, ...extractedData };
         
         const completedFields = requiredFields.filter(field => 
@@ -547,13 +548,11 @@ class KGFlowDirector {
                 break;
 
             case 'phone_number_provided':
-                if (!extractedData.customer_phone) {
-                    recommendations.push('Call capture_phone_number() to capture the phone number provided');
-                } else {
-                    recommendations.push('Call validate_phone_format() to validate the phone number format');
-                    // If all data is collected, suggest moving to final confirmation
+                // NOTE: Phone number capture removed — auto-filled from Twilio callingNumber
+                // If all data is collected, suggest moving to final confirmation
+                {
                     const allDataCollected = extractedData.machine_no && extractedData.complaint_title && 
-                                           extractedData.machine_status && extractedData.city && extractedData.customer_phone;
+                                           extractedData.machine_status && extractedData.city;
                     if (allDataCollected) {
                         recommendations.push('All data collected - proceed to final confirmation');
                     }
@@ -570,11 +569,7 @@ class KGFlowDirector {
                 }
                 break;
 
-            case 'phone_number_provided':
-                if (!extractedData.customer_phone) {
-                    recommendations.push('Call capture_phone_number() to capture the phone number provided');
-                }
-                break;
+            // Duplicate phone_number_provided case removed
 
             case 'location_provided':
                 if (!extractedData.city) {
@@ -621,9 +616,8 @@ class KGFlowDirector {
             recommendations.push('Ask if machine is completely stopped (band) or running with problem (chal rahi)');
         } else if (!extractedData.city && primaryIntent !== 'location_provided') {
             recommendations.push('Ask which city/location they are in');
-        } else if (!extractedData.customer_phone && primaryIntent !== 'phone_number_provided') {
-            recommendations.push('Ask for their 10-digit mobile number');
         }
+        // NOTE: customer_phone recommendation removed — auto-filled from Twilio callingNumber
 
         // Optimization shortcuts
         if (flowPlan.shortcuts.includes('model_fast_track')) {
@@ -708,9 +702,8 @@ class KGFlowDirector {
             guidelines.push('Priority: Ask if machine is band (stopped) or chal rahi (running with problem)');
         } else if (!extractedData.city) {
             guidelines.push('Priority: Ask which city/location they are in');
-        } else if (!extractedData.customer_phone) {
-            guidelines.push('Priority: Ask for their 10-digit mobile number');
         } else {
+            // NOTE: customer_phone step removed — auto-filled from Twilio callingNumber
             guidelines.push('All data collected - proceed to final confirmation');
         }
 

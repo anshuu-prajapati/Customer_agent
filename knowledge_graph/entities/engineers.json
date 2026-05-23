@@ -1,0 +1,107 @@
+{
+  "metadata": {
+    "entity_type": "Service_Engineer",
+    "description": "Service engineers working in Rajesh Motors network",
+    "total_count": 12,
+    "last_updated": "2024-05-19",
+    "data_source": "employee_database"
+  },
+  "engineers": [
+    {
+      "id": "eng_001",
+      "name": "Mohan Lal Sharma",
+      "phone": "9876501234",
+      "employee_id": "EMP001",
+      "branch_code": "4",
+      "branch_name": "JAIPUR",
+      "specialization": ["engine_repair", "electrical_systems"],
+      "experience_years": 8,
+      "certification_level": "senior",
+      "languages": ["Hindi", "English"],
+      "service_areas": ["JAIPUR", "DAUSA", "KARAULI", "TONK"],
+      "performance_metrics": {
+        "avg_resolution_time_hours": 4.2,
+        "customer_satisfaction": 4.6,
+        "complaints_resolved_monthly": 25,
+        "first_call_resolution_rate": 0.78
+      },
+      "availability": {
+        "working_hours": "09:00-18:00",
+        "emergency_available": true,
+        "current_status": "available"
+      }
+    },
+    {
+      "id": "eng_002",
+      "name": "Rajesh Kumar Meena",
+      "phone": "9876502345",
+      "employee_id": "EMP002",
+      "branch_code": "5",
+      "branch_name": "KOTA",
+      "specialization": ["hydraulic_systems", "transmission"],
+      "experience_years": 12,
+      "certification_level": "expert",
+      "languages": ["Hindi", "English"],
+      "service_areas": ["KOTA", "JHALAWAR", "RAMGANJMANDI"],
+      "performance_metrics": {
+        "avg_resolution_time_hours": 3.8,
+        "customer_satisfaction": 4.8,
+        "complaints_resolved_monthly": 30,
+        "first_call_resolution_rate": 0.85
+      },
+      "availability": {
+        "working_hours": "08:00-17:00",
+        "emergency_available": true,
+        "current_status": "busy"
+      }
+    },
+    {
+      "id": "eng_003",
+      "name": "Suresh Chand Jain",
+      "phone": "9876503456",
+      "employee_id": "EMP003",
+      "branch_code": "7",
+      "branch_name": "UDAIPUR",
+      "specialization": ["ac_systems", "general_maintenance"],
+      "experience_years": 6,
+      "certification_level": "intermediate",
+      "languages": ["Hindi", "Gujarati"],
+      "service_areas": ["UDAIPUR", "DUNGARPUR", "BANSWARA", "RAJSAMAND"],
+      "performance_metrics": {
+        "avg_resolution_time_hours": 5.1,
+        "customer_satisfaction": 4.3,
+        "complaints_resolved_monthly": 20,
+        "first_call_resolution_rate": 0.72
+      },
+      "availability": {
+        "working_hours": "09:00-18:00",
+        "emergency_available": false,
+        "current_status": "available"
+      }
+    },
+    {
+      "id": "eng_004",
+      "name": "Vikram Singh Rathore",
+      "phone": "9876504567",
+      "employee_id": "EMP004",
+      "branch_code": "6",
+      "branch_name": "SIKAR",
+      "specialization": ["electrical_systems", "engine_repair"],
+      "experience_years": 10,
+      "certification_level": "senior",
+      "languages": ["Hindi", "English"],
+      "service_areas": ["SIKAR", "JHUNJHUNU", "SUJANGARH"],
+      "performance_metrics": {
+        "avg_resolution_time_hours": 4.5,
+        "customer_satisfaction": 4.5,
+        "complaints_resolved_monthly": 22,
+        "first_call_resolution_rate": 0.80
+      },
+      "availability": {
+        "working_hours": "09:00-18:00",
+        "emergency_available": true,
+        "current_status": "available"
+      }
+    }
+  ]
+}

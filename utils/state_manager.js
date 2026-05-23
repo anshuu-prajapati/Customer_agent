@@ -44,13 +44,8 @@ export const REQUIRED_FIELDS = [
         required: true,
         order: 4
     },
-    {
-        key: 'customer_phone',
-        label: 'Phone Number',
-        validation: (value) => value && /^[6-9]\d{9}$/.test(value),
-        required: true,
-        order: 5
-    }
+    // NOTE: customer_phone removed from required fields.
+    // Phone is auto-filled from Twilio callingNumber in the API payload.
 ];
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -68,7 +63,7 @@ export const STATES = {
     COLLECT_STATUS: 'collect_status',
     COLLECT_CITY: 'collect_city',
     CONFIRM_CITY: 'confirm_city',
-    COLLECT_PHONE: 'collect_phone',
+    // COLLECT_PHONE removed - phone is auto-filled from Twilio callingNumber
     
     // Update states (can interrupt any collection state)
     UPDATE_MACHINE: 'update_machine',
@@ -205,12 +200,8 @@ export function determineCurrentState(callData) {
         return STATES.COLLECT_CITY;
     }
     
-    // Step 6: Phone (collect if not provided)
-    if (!d.customer_phone || !/^[6-9]\d{9}$/.test(d.customer_phone)) {
-        return STATES.COLLECT_PHONE;
-    }
-    
     // All data collected - ready for final confirmation
+    // NOTE: customer_phone no longer required; auto-filled from Twilio callingNumber
     return STATES.FINAL_CONFIRM;
 }
 
@@ -303,12 +294,12 @@ export const STATE_TRANSITIONS = {
     [STATES.VALIDATE_MACHINE]: [STATES.COLLECT_COMPLAINT, STATES.COLLECT_MACHINE_NO, STATES.UPDATE_MACHINE],
     [STATES.COLLECT_COMPLAINT]: [STATES.COLLECT_STATUS, STATES.UPDATE_MACHINE],
     [STATES.COLLECT_STATUS]: [STATES.COLLECT_CITY, STATES.UPDATE_MACHINE],
-    [STATES.COLLECT_CITY]: [STATES.CONFIRM_CITY, STATES.COLLECT_PHONE, STATES.COLLECT_CITY, STATES.UPDATE_MACHINE],
-    [STATES.CONFIRM_CITY]: [STATES.COLLECT_PHONE, STATES.COLLECT_CITY, STATES.UPDATE_MACHINE],
-    [STATES.COLLECT_PHONE]: [STATES.FINAL_CONFIRM, STATES.UPDATE_MACHINE],
-    [STATES.UPDATE_MACHINE]: [STATES.UPDATE_MACHINE_VALIDATE, STATES.UPDATE_MACHINE, STATES.COLLECT_COMPLAINT, STATES.COLLECT_STATUS, STATES.COLLECT_CITY, STATES.COLLECT_PHONE],
+    [STATES.COLLECT_CITY]: [STATES.CONFIRM_CITY, STATES.FINAL_CONFIRM, STATES.COLLECT_CITY, STATES.UPDATE_MACHINE],
+    [STATES.CONFIRM_CITY]: [STATES.FINAL_CONFIRM, STATES.COLLECT_CITY, STATES.UPDATE_MACHINE],
+    // COLLECT_PHONE state removed - phone auto-filled from Twilio callingNumber
+    [STATES.UPDATE_MACHINE]: [STATES.UPDATE_MACHINE_VALIDATE, STATES.UPDATE_MACHINE, STATES.COLLECT_COMPLAINT, STATES.COLLECT_STATUS, STATES.COLLECT_CITY],
     [STATES.UPDATE_MACHINE_VALIDATE]: [STATES.UPDATE_MACHINE_CONFIRM, STATES.UPDATE_MACHINE],
-    [STATES.UPDATE_MACHINE_CONFIRM]: [STATES.COLLECT_COMPLAINT, STATES.COLLECT_STATUS, STATES.COLLECT_CITY, STATES.COLLECT_PHONE, STATES.UPDATE_MACHINE],
+    [STATES.UPDATE_MACHINE_CONFIRM]: [STATES.COLLECT_COMPLAINT, STATES.COLLECT_STATUS, STATES.COLLECT_CITY, STATES.FINAL_CONFIRM, STATES.UPDATE_MACHINE],
     [STATES.FINAL_CONFIRM]: [STATES.SUBMIT, STATES.FINAL_CONFIRM, STATES.COLLECT_COMPLAINT, STATES.UPDATE_MACHINE],
     [STATES.SUBMIT]: [STATES.COMPLETED],
     [STATES.COMPLETED]: []
@@ -335,7 +326,7 @@ export function getStateName(state) {
         [STATES.COLLECT_STATUS]: 'Collecting Machine Status',
         [STATES.COLLECT_CITY]: 'Collecting City',
         [STATES.CONFIRM_CITY]: 'Confirming City',
-        [STATES.COLLECT_PHONE]: 'Collecting Phone',
+        // COLLECT_PHONE removed - phone auto-filled from Twilio callingNumber
         [STATES.UPDATE_MACHINE]: 'Updating Machine Number',
         [STATES.UPDATE_MACHINE_VALIDATE]: 'Validating Updated Machine',
         [STATES.UPDATE_MACHINE_CONFIRM]: 'Confirming Updated Machine',

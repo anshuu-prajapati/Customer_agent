@@ -1,0 +1,274 @@
+{
+  "metadata": {
+    "entity_type": "Context_Template",
+    "description": "Pre-built context templates for LLM optimization and token reduction",
+    "template_version": "2.0",
+    "last_updated": "2024-05-19",
+    "data_source": "conversation_optimization_analysis"
+  },
+  "context_templates": [
+    {
+      "id": "template_001",
+      "template_name": "Engine Problem Context",
+      "problem_category": "engine_issues",
+      "usage_frequency": 0.28,
+      "token_count": 180,
+      "template": "Customer reports engine starting issues with {machine_model}. Common causes for this model: fuel system (45%), battery (30%), starter motor (25%). Focus diagnostic questions on fuel level, battery voltage, starter motor sounds. Typical resolution time: 4.2 hours. Skip generic troubleshooting, go directly to fuel-battery-starter sequence.",
+      "variables": {
+        "machine_model": "string",
+        "customer_history": "optional_string",
+        "seasonal_factor": "optional_string"
+      },
+      "optimization_impact": {
+        "token_reduction": 0.65,
+        "accuracy_improvement": 0.20,
+        "time_savings": "35%"
+      },
+      "usage_conditions": [
+        "intent_confidence > 0.80",
+        "problem_category == 'engine_not_starting'",
+        "machine_model_identified"
+      ]
+    },
+    {
+      "id": "template_002",
+      "template_name": "Hydraulic Problem Context",
+      "problem_category": "hydraulic_issues",
+      "usage_frequency": 0.22,
+      "token_count": 195,
+      "template": "Customer has hydraulic oil leakage in {machine_model}. This model commonly has leaks at: cylinder seals (40%), hydraulic hoses (35%), tank connections (25%). Ask about leak location (top/bottom), leak severity, and operational impact. Average resolution: 6.5 hours. Priority: safety check first, then leak source identification.",
+      "variables": {
+        "machine_model": "string",
+        "leak_severity": "optional_string",
+        "operational_status": "optional_string"
+      },
+      "optimization_impact": {
+        "token_reduction": 0.58,
+        "accuracy_improvement": 0.25,
+        "time_savings": "30%"
+      },
+      "usage_conditions": [
+        "intent_confidence > 0.75",
+        "problem_category == 'hydraulic_oil_leakage'",
+        "safety_check_required"
+      ]
+    },
+    {
+      "id": "template_003",
+      "template_name": "AC Problem Context",
+      "problem_category": "electrical_issues",
+      "usage_frequency": 0.18,
+      "token_count": 165,
+      "template": "Customer reports AC cooling issues with {machine_model}. Summer season increases AC problems by 60%. Common causes: refrigerant gas low (50%), compressor failure (30%), electrical issues (20%). Quick diagnostic: check compressor sound, air flow, cooling effectiveness. Resolution time: 3.2 hours average.",
+      "variables": {
+        "machine_model": "string",
+        "season": "string",
+        "ambient_temperature": "optional_string"
+      },
+      "optimization_impact": {
+        "token_reduction": 0.72,
+        "accuracy_improvement": 0.18,
+        "time_savings": "45%"
+      },
+      "usage_conditions": [
+        "intent_confidence > 0.85",
+        "problem_category == 'ac_not_working'",
+        "seasonal_factor == 'summer'"
+      ]
+    },
+    {
+      "id": "template_004",
+      "template_name": "Transmission Problem Context",
+      "problem_category": "mechanical_issues",
+      "usage_frequency": 0.15,
+      "token_count": 210,
+      "template": "Customer has transmission/gearbox issues with {machine_model}. This model's transmission problems typically involve: gear shifting (45%), hydraulic pressure (35%), clutch system (20%). Ask about specific gear problems, shifting sounds, and operational performance. Complex issue - average resolution: 8.2 hours. Requires transmission specialist.",
+      "variables": {
+        "machine_model": "string",
+        "gear_affected": "optional_string",
+        "operational_hours": "optional_string"
+      },
+      "optimization_impact": {
+        "token_reduction": 0.55,
+        "accuracy_improvement": 0.30,
+        "time_savings": "25%"
+      },
+      "usage_conditions": [
+        "intent_confidence > 0.75",
+        "problem_category == 'transmission_problem'",
+        "specialist_required == true"
+      ]
+    },
+    {
+      "id": "template_005",
+      "template_name": "Brake System Context",
+      "problem_category": "safety_critical",
+      "usage_frequency": 0.12,
+      "token_count": 185,
+      "template": "SAFETY CRITICAL: Customer reports brake system problems with {machine_model}. Immediate safety assessment required. Common brake issues: brake fluid low (40%), brake pads worn (35%), hydraulic system failure (25%). Priority questions: brake pedal feel, stopping distance, any warning sounds. Resolution time: 4.8 hours. Safety first protocol.",
+      "variables": {
+        "machine_model": "string",
+        "safety_status": "string",
+        "operational_restriction": "string"
+      },
+      "optimization_impact": {
+        "token_reduction": 0.62,
+        "accuracy_improvement": 0.35,
+        "time_savings": "40%"
+      },
+      "usage_conditions": [
+        "intent_confidence > 0.80",
+        "problem_category == 'brake_system_problem'",
+        "safety_critical == true"
+      ]
+    },
+    {
+      "id": "template_006",
+      "template_name": "Electrical Problem Context",
+      "problem_category": "electrical_issues",
+      "usage_frequency": 0.10,
+      "token_count": 175,
+      "template": "Customer has electrical system issues with {machine_model}. Monsoon season increases electrical problems by 40%. Common causes: battery issues (45%), wiring problems (30%), fuse failures (25%). Check battery voltage, visible wire damage, fuse box status. Average resolution: 5.1 hours. Weather-related factors important.",
+      "variables": {
+        "machine_model": "string",
+        "weather_condition": "optional_string",
+        "battery_age": "optional_string"
+      },
+      "optimization_impact": {
+        "token_reduction": 0.68,
+        "accuracy_improvement": 0.22,
+        "time_savings": "38%"
+      },
+      "usage_conditions": [
+        "intent_confidence > 0.78",
+        "problem_category == 'electrical_problem'",
+        "weather_factor_relevant"
+      ]
+    }
+  ],
+  "dynamic_context_builders": [
+    {
+      "id": "builder_001",
+      "builder_name": "Machine Model Context Enhancer",
+      "trigger": "machine_model_identified",
+      "enhancement_rules": {
+        "3DX Super": {
+          "add_context": "This 3DX Super model commonly has fuel filter issues (35% of engine problems). Check fuel filter first.",
+          "token_addition": 25,
+          "accuracy_boost": 0.15
+        },
+        "3DX Xtra": {
+          "add_context": "3DX Xtra transmission problems are common (31% of complaints). Focus on hydraulic pressure checks.",
+          "token_addition": 28,
+          "accuracy_boost": 0.18
+        },
+        "3DX Pro": {
+          "add_context": "3DX Pro AC issues peak in summer (60% increase). Compressor problems are frequent.",
+          "token_addition": 22,
+          "accuracy_boost": 0.20
+        }
+      }
+    },
+    {
+      "id": "builder_002",
+      "builder_name": "Seasonal Context Enhancer",
+      "trigger": "seasonal_pattern_detected",
+      "enhancement_rules": {
+        "summer": {
+          "add_context": "Summer season: AC problems increase 60%, hydraulic overheating common, check cooling systems first.",
+          "token_addition": 30,
+          "problems_affected": ["ac_not_working", "hydraulic_oil_leakage"]
+        },
+        "winter": {
+          "add_context": "Winter season: Engine starting problems increase 45%, battery issues common, check battery voltage first.",
+          "token_addition": 32,
+          "problems_affected": ["engine_not_starting", "electrical_problem"]
+        },
+        "monsoon": {
+          "add_context": "Monsoon season: Electrical problems increase 40%, water damage risk, check wiring and connections first.",
+          "token_addition": 35,
+          "problems_affected": ["electrical_problem", "engine_not_starting"]
+        }
+      }
+    },
+    {
+      "id": "builder_003",
+      "builder_name": "Historical Context Enhancer",
+      "trigger": "customer_history_available",
+      "enhancement_rules": {
+        "repeat_problem": {
+          "add_context": "Customer previously had similar {problem_type}. Last resolution: {last_solution}. Check if same root cause.",
+          "token_addition": 40,
+          "accuracy_boost": 0.25
+        },
+        "frequent_customer": {
+          "add_context": "Frequent service customer. Machine usage: {usage_pattern}. Maintenance history: {maintenance_status}.",
+          "token_addition": 35,
+          "service_priority": "high"
+        },
+        "warranty_status": {
+          "add_context": "Machine warranty status: {warranty_status}. Warranty coverage affects solution options and costs.",
+          "token_addition": 25,
+          "cost_implications": true
+        }
+      }
+    }
+  ],
+  "template_selection_logic": {
+    "primary_selection": {
+      "criteria": ["intent_confidence", "problem_category_match", "machine_model_available"],
+      "threshold": 0.80,
+      "fallback": "generic_template"
+    },
+    "enhancement_selection": {
+      "criteria": ["additional_context_available", "historical_data_present", "seasonal_relevance"],
+      "max_enhancements": 2,
+      "token_budget": 100
+    },
+    "optimization_rules": {
+      "high_confidence": {
+        "condition": "intent_confidence > 0.85",
+        "action": "use_specific_template + skip_generic_questions",
+        "token_savings": 400
+      },
+      "medium_confidence": {
+        "condition": "intent_confidence > 0.70",
+        "action": "use_template + guided_questioning",
+        "token_savings": 250
+      },
+      "low_confidence": {
+        "condition": "intent_confidence < 0.70",
+        "action": "use_generic_flow + collect_more_info",
+        "token_savings": 100
+      }
+    }
+  },
+  "performance_tracking": {
+    "template_effectiveness": {
+      "engine_template": {
+        "usage_count": 350,
+        "success_rate": 0.92,
+        "avg_token_reduction": 0.65,
+        "customer_satisfaction": 4.5
+      },
+      "hydraulic_template": {
+        "usage_count": 275,
+        "success_rate": 0.87,
+        "avg_token_reduction": 0.58,
+        "customer_satisfaction": 4.3
+      },
+      "ac_template": {
+        "usage_count": 225,
+        "success_rate": 0.94,
+        "avg_token_reduction": 0.72,
+        "customer_satisfaction": 4.7
+      }
+    },
+    "optimization_metrics": {
+      "overall_token_reduction": 0.68,
+      "conversation_time_reduction": 0.35,
+      "accuracy_improvement": 0.22,
+      "cost_savings_per_conversation": "₹12.50"
+    }
+  }
+}
