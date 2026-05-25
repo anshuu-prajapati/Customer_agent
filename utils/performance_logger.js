@@ -394,31 +394,31 @@ class PerformanceLogger {
      * Log detailed turn summary
      */
     logTurnSummary(callSid, turn) {
-        // const grade = turn.performance.grade;
-        // const gradeEmoji = {
-        //     'A+': '🏆', 'A': '✅', 'B': '⚠️', 'C': '🐌', 'D': '🚨', 'F': '💥'
-        // }[grade] || '❓';
+        const grade = turn.performance.grade;
+        const gradeEmoji = {
+            'A+': '🏆', 'A': '✅', 'B': '⚠️', 'C': '🐌', 'D': '🚨', 'F': '💥'
+        }[grade] || '❓';
         
-        // console.log(`\n⏱️  [TURN ${turn.turnNumber}] COMPLETED | Grade: ${gradeEmoji} ${grade}`);
-        // console.log(`   📊 Total Time: ${turn.totalTurnTime.toFixed(0)}ms`);
-        // console.log(`   🔍 Breakdown:`);
-        // console.log(`      🎧 STT: ${turn.services.stt.duration.toFixed(0)}ms`);
-        // console.log(`      🧠 LLM: ${turn.services.llm.duration.toFixed(0)}ms`);
-        // console.log(`      🎤 TTS: ${turn.services.tts.duration.toFixed(0)}ms`);
-        // console.log(`      🌐 API: ${turn.services.api.duration.toFixed(0)}ms`);
+        console.log(`\n⏱️  [TURN ${turn.turnNumber}] COMPLETED | Grade: ${gradeEmoji} ${grade}`);
+        console.log(`   📊 Total Time: ${turn.totalTurnTime.toFixed(0)}ms`);
+        console.log(`   🔍 Service Breakdown:`);
+        console.log(`      🎧 STT: ${turn.services.stt.duration.toFixed(0)}ms`);
+        console.log(`      🧠 LLM: ${turn.services.llm.duration.toFixed(0)}ms (${turn.services.llm.tokens} tokens)`);
+        console.log(`      🎤 TTS: ${turn.services.tts.duration.toFixed(0)}ms (${turn.services.tts.service || 'Unknown'})`);
+        console.log(`      🌐 API: ${turn.services.api.duration.toFixed(0)}ms`);
         
-        // if (turn.performance.bottleneck !== 'unknown') {
-        //     console.log(`   🎯 Bottleneck: ${turn.performance.bottleneck.toUpperCase()}`);
-        // }
+        if (turn.performance.bottleneck !== 'unknown') {
+            console.log(`   🎯 BOTTLENECK: ${turn.performance.bottleneck.toUpperCase()}`);
+        }
         
-        // if (turn.performance.recommendations.length > 0) {
-        //     console.log(`   💡 Recommendations:`);
-        //     turn.performance.recommendations.forEach(rec => {
-        //         console.log(`      • ${rec}`);
-        //     });
-        // }
+        if (turn.performance.recommendations.length > 0) {
+            console.log(`   💡 Recommendations:`);
+            turn.performance.recommendations.forEach(rec => {
+                console.log(`      • ${rec}`);
+            });
+        }
         
-        // console.log(`${"─".repeat(60)}\n`);
+        console.log(`${"─".repeat(60)}\n`);
     }
 
     /**
@@ -432,36 +432,93 @@ class PerformanceLogger {
         session.sessionEnd = sessionEnd;
         session.totalDuration = sessionEnd - session.sessionStart;
         
-        // console.log(`\n${"═".repeat(80)}`);
-        // console.log(`⏱️  [PERFORMANCE REPORT] ${callSid} | Outcome: ${outcome.toUpperCase()}`);
-        // console.log(`🕐 Total Duration: ${(session.totalDuration / 1000).toFixed(1)}s`);
-        // console.log(`🔄 Turns: ${session.metrics.totalTurns}`);
-        // console.log(`📊 Avg Response: ${session.metrics.averageResponseTime.toFixed(0)}ms`);
-        // console.log(`${"═".repeat(80)}`);
+        console.log(`\n${"═".repeat(80)}`);
+        console.log(`📊 [PERFORMANCE REPORT] ${callSid} | Outcome: ${outcome.toUpperCase()}`);
+        console.log(`🕐 Total Duration: ${(session.totalDuration / 1000).toFixed(1)}s`);
+        console.log(`🔄 Turns: ${session.metrics.totalTurns}`);
+        console.log(`📊 Avg Response: ${session.metrics.averageResponseTime.toFixed(0)}ms`);
+        console.log(`${"═".repeat(80)}`);
         
-        // // Performance summary
-        // console.log(`\n🏆 [PERFORMANCE SUMMARY]`);
-        // console.log(`   ⚡ Fastest Turn: ${session.metrics.fastestTurn.toFixed(0)}ms`);
-        // console.log(`   🐌 Slowest Turn: ${session.metrics.slowestTurn.toFixed(0)}ms`);
-        // console.log(`   ⏰ Total Processing: ${(session.metrics.totalProcessingTime / 1000).toFixed(1)}s`);
-        // console.log(`   🔇 Total Silence: ${(session.metrics.totalSilenceTime / 1000).toFixed(1)}s`);
-        // console.log(`   ⏱️  Timeouts: ${session.metrics.timeouts}`);
-        // console.log(`   ❌ Errors: ${session.metrics.errors}`);
+        // Performance summary
+        console.log(`\n🏆 [PERFORMANCE SUMMARY]`);
+        console.log(`   ⚡ Fastest Turn: ${session.metrics.fastestTurn.toFixed(0)}ms`);
+        console.log(`   🐌 Slowest Turn: ${session.metrics.slowestTurn.toFixed(0)}ms`);
+        console.log(`   ⏰ Total Processing: ${(session.metrics.totalProcessingTime / 1000).toFixed(1)}s`);
+        console.log(`   🔇 Total Silence: ${(session.metrics.totalSilenceTime / 1000).toFixed(1)}s`);
+        console.log(`   ⏱️  Timeouts: ${session.metrics.timeouts}`);
+        console.log(`   ❌ Errors: ${session.metrics.errors}`);
         
-        // // Service breakdown
-        // console.log(`\n🔧 [SERVICE BREAKDOWN]`);
-        // Object.entries(session.services).forEach(([service, metrics]) => {
-        //     if (metrics.calls > 0) {
-        //         const avgTime = metrics.totalTime / metrics.calls;
-        //         const errorRate = (metrics.errors / metrics.calls * 100).toFixed(1);
-        //         console.log(`   ${service.toUpperCase()}: ${avgTime.toFixed(0)}ms avg | ${metrics.calls} calls | ${errorRate}% errors`);
-        //     }
-        // });
+        // Service breakdown with percentages
+        console.log(`\n🔧 [SERVICE PERFORMANCE ANALYSIS]`);
+        Object.entries(session.services).forEach(([service, metrics]) => {
+            if (metrics.calls > 0) {
+                const avgTime = metrics.totalTime / metrics.calls;
+                const totalPercent = (metrics.totalTime / session.totalDuration * 100).toFixed(1);
+                const errorRate = (metrics.errors / metrics.calls * 100).toFixed(1);
+                
+                console.log(`   ${service.toUpperCase()}:`);
+                console.log(`      ⏱️  Avg Time: ${avgTime.toFixed(0)}ms`);
+                console.log(`      📊 Total Time: ${metrics.totalTime.toFixed(0)}ms (${totalPercent}% of call)`);
+                console.log(`      📞 Calls: ${metrics.calls} | ❌ Errors: ${errorRate}%`);
+            }
+        });
         
-        // console.log(`${"═".repeat(80)}\n`);
+        console.log(`${"═".repeat(80)}\n`);
         
         // Mark session as ended
         session.outcome = outcome;
+    }
+
+    /**
+     * Log real-time service performance summary
+     */
+    logServiceSummary(callSid) {
+        const session = this.sessions.get(callSid);
+        if (!session?.currentTurn) return;
+
+        const turn = session.currentTurn;
+        const services = turn.services;
+        
+        console.log(`\n⚡ [REAL-TIME] Turn ${turn.turnNumber} Service Performance:`);
+        
+        if (services.stt.duration > 0) {
+            console.log(`   🎧 STT: ${services.stt.duration.toFixed(0)}ms | Confidence: ${(services.stt.confidence * 100).toFixed(1)}%`);
+        }
+        
+        if (services.llm.duration > 0) {
+            const tokensPerMs = services.llm.tokens / services.llm.duration;
+            console.log(`   🧠 LLM: ${services.llm.duration.toFixed(0)}ms | ${services.llm.tokens} tokens | ${tokensPerMs.toFixed(2)} tokens/ms`);
+            console.log(`        💰 Cost: ₹${services.llm.cost.toFixed(4)}`);
+        }
+        
+        if (services.tts.duration > 0) {
+            const kbPerMs = (services.tts.audioSize / 1024) / services.tts.duration;
+            console.log(`   🎤 TTS: ${services.tts.duration.toFixed(0)}ms | ${(services.tts.audioSize / 1024).toFixed(1)}KB | ${kbPerMs.toFixed(2)} KB/ms`);
+            console.log(`        🎵 Service: ${services.tts.service} | 💰 Cost: ₹${services.tts.cost.toFixed(4)}`);
+        }
+        
+        if (services.api.duration > 0) {
+            console.log(`   🌐 API: ${services.api.duration.toFixed(0)}ms | Endpoint: ${services.api.endpoint}`);
+        }
+        
+        // Calculate current bottleneck
+        const timings = {
+            stt: services.stt.duration,
+            llm: services.llm.duration,
+            tts: services.tts.duration,
+            api: services.api.duration
+        };
+        
+        const bottleneck = Object.entries(timings).reduce((max, [service, time]) => 
+            time > max.time ? { service, time } : max, 
+            { service: 'unknown', time: 0 }
+        );
+        
+        if (bottleneck.service !== 'unknown' && bottleneck.time > 0) {
+            console.log(`   🎯 Current Bottleneck: ${bottleneck.service.toUpperCase()} (${bottleneck.time.toFixed(0)}ms)`);
+        }
+        
+        console.log(`${"─".repeat(50)}`);
     }
 
     /**

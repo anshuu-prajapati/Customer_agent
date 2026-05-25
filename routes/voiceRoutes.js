@@ -226,6 +226,16 @@ function isClarificationQuestion(text) {
         && !isAddMoreProblem(text);
 }
 
+function isPlaceholderResponse(text) {
+    const placeholders = [
+        "Machine number note kar liya.",
+        "Complaint register kar raha hun.",
+        "Theek hai, process kar raha hun.",
+        "Ji, bataiye."
+    ];
+    return !text || placeholders.includes(text.trim());
+}
+
 function answerSideQuestion(text, callData) {
     const lo = text.toLowerCase();
     
@@ -917,7 +927,20 @@ router.post("/process", async (req, res) => {
             } else {
                 // Use AI to generate intelligent silence response
                 try {
+                    const silenceLLMStart = performanceLogger.getHighResTime();
                     const aiResp = await getSmartAIResponse(callData, "[SILENCE]");
+                    const silenceLLMEnd = performanceLogger.getHighResTime();
+                    
+                    // Log silence LLM call
+                    performanceLogger.logLLM(
+                        CallSid,
+                        silenceLLMStart,
+                        silenceLLMEnd,
+                        aiResp.tokens || 0,
+                        aiResp.cost || 0,
+                        null
+                    );
+                    
                     silenceResponse = aiResp.text || "Ji, bataiye kya madad chahiye?";
                 } catch (error) {
                     console.warn(`   ⚠️ [SILENCE AI] Failed, using fallback: ${error.message}`);
@@ -1798,6 +1821,9 @@ router.post("/process", async (req, res) => {
             aiResp.error || null
         );
         
+        // Log real-time service performance summary
+        performanceLogger.logServiceSummary(CallSid);
+        
         // Store AI response for debugging and fallback
         callData.lastAIResponse = aiResp.text;
         // console.log(`   💬 AI Response: "${aiResp.text}"`);
@@ -2127,7 +2153,7 @@ router.post("/process", async (req, res) => {
                 // All data collected - go to final confirmation
                 // console.log(`   ✅ [FUNCTION CALLS] All data collected after function execution`);
                 callData.awaitingFinalConfirm = true;
-                const finalPrompt = "Aur koi problem toh nahi machine mein? Save kar dun complaint?";
+                const finalPrompt = !isPlaceholderResponse(aiResp.text) ? aiResp.text : "Aur koi problem toh nahi machine mein? Save kar dun complaint?";
                 callData.lastQuestion = finalPrompt;
                 callData.messages.push({ role: "assistant", text: finalPrompt, timestamp: new Date() });
                 
@@ -2144,7 +2170,7 @@ router.post("/process", async (req, res) => {
             } else if (stillMissing) {
                 // Still missing data - ask for next field
                 // console.log(`   ➡️  [FUNCTION CALLS] Still missing: ${stillMissing}`);
-                const nextPrompt = getSmartSilencePrompt(callData);
+                const nextPrompt = !isPlaceholderResponse(aiResp.text) ? aiResp.text : getSmartSilencePrompt(callData);
                 callData.lastQuestion = nextPrompt;
                 callData.messages.push({ role: "assistant", text: nextPrompt, timestamp: new Date() });
                 

@@ -541,86 +541,9 @@ function calculateCost(tokens, service) {
  * @returns {string} Optimal model name for this request
  */
 function selectOptimalModel(callData, kgFlowDirection = null) {
-    // Default models - using Azure deployment names
-    const FAST_MODEL = "gpt-35-turbo"; // Fast model for routine conversations (if available)
     const SMART_MODEL = process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o-mini"; // High-quality model for complex cases
     
-    // Check if fast model deployment exists, otherwise use smart model
-    const AVAILABLE_FAST_MODEL = process.env.AZURE_OPENAI_FAST_DEPLOYMENT || SMART_MODEL;
-    
-    // Get last user message for analysis
-    const lastUserMsg = callData.messages.filter(m => m.role === "user").pop()?.text || "";
-    const turnCount = callData.turnCount || 0;
-    
-    // COMPLEX CASES - Use smart model (gpt-4o-mini)
-    
-    // 1. First turn or greeting - need high quality introduction
-    if (turnCount <= 1 || !lastUserMsg || lastUserMsg === '[call connected]') {
-        return SMART_MODEL;
-    }
-    
-    // 2. Out-of-scope requests - need intelligent handling
-    if (kgFlowDirection?.inputAnalysis?.primaryIntent === 'out_of_scope') {
-        return SMART_MODEL;
-    }
-    
-    // 3. Complex multi-intent scenarios
-    if (kgFlowDirection?.inputAnalysis?.intents?.length > 2) {
-        return SMART_MODEL;
-    }
-    
-    // 4. Error recovery or confusion scenarios
-    const isConfused = /kya|kaun|samjha nahi|confusion|help|explain/i.test(lastUserMsg);
-    if (isConfused || callData.machineNumberAttempts > 1) {
-        return SMART_MODEL;
-    }
-    
-    // 5. Final confirmation and submission - critical accuracy needed
-    if (callData.awaitingFinalConfirm || callData.readyToSubmit) {
-        return SMART_MODEL;
-    }
-    
-    // 6. Complex complaint descriptions or technical issues
-    const isComplexComplaint = /engine|hydraulic|brake|oil|filter|service|technical|problem.*multiple|aur.*problem/i.test(lastUserMsg);
-    if (isComplexComplaint && !callData.extractedData.complaint_title) {
-        return SMART_MODEL;
-    }
-    
-    // 7. Update/correction scenarios - need precision
-    if (callData.inUpdateFlow || /change|correct|galat|sahi nahi|update/i.test(lastUserMsg)) {
-        return SMART_MODEL;
-    }
-    
-    // ROUTINE CASES - Use fast model (gpt-3.5-turbo or fallback to smart model)
-    
-    // 1. Simple data collection (machine number, city, status)
-    const isSimpleDataCollection = 
-        /^\d+$/.test(lastUserMsg.trim()) || // Just numbers
-        /^(haan|nahi|theek|bilkul|band|chal rahi|jaipur|kota|ajmer|udaipur)$/i.test(lastUserMsg.trim()); // Simple responses
-    
-    if (isSimpleDataCollection) {
-        return AVAILABLE_FAST_MODEL;
-    }
-    
-    // 2. Confirmation responses
-    const isSimpleConfirmation = /^(haan|ha|nahi|theek hai|save kar|register kar|ok|yes|no)$/i.test(lastUserMsg.trim());
-    if (isSimpleConfirmation) {
-        return AVAILABLE_FAST_MODEL;
-    }
-    
-    // 3. Single-intent scenarios with clear data
-    if (kgFlowDirection?.inputAnalysis?.primaryIntent && 
-        ['machine_number_provided', 'location_provided', 'machine_status_provided'].includes(kgFlowDirection.inputAnalysis.primaryIntent)) {
-        return AVAILABLE_FAST_MODEL;
-    }
-    
-    // 4. Mid-conversation data collection (not first turn, not complex)
-    const hasBasicData = callData.extractedData.machine_no || callData.extractedData.complaint_title;
-    if (hasBasicData && turnCount > 2 && turnCount < 8) {
-        return AVAILABLE_FAST_MODEL;
-    }
-    
-    // Default to smart model for safety
+    // Always route directly to the smart model since only one LLM deployment is available/active in this environment
     return SMART_MODEL;
 }
 

@@ -350,56 +350,12 @@ Answer briefly, then continue:
    🔧 FUNCTION CALLING GUIDANCE (Only if USE_FUNCTION_CALLING=true)
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 export const FUNCTION_CALLING_CONTEXT = `
-=== 🔧 FUNCTION CALLING ENABLED ===
-
-**Available Functions (20 total):**
-
-**Phase 1 - Capture (5):**
-• capture_machine_number(machine_no)
-• capture_complaint(complaint_title, complaint_details)
-• capture_machine_status(machine_status)
-• capture_city(city)
-// NOTE: capture_phone_number removed - phone auto-filled from Twilio callingNumber
-
-**Phase 2 - Update (4):**
-• update_machine_number(new_machine_no, reason)
-• update_complaint(new_complaint_title, new_complaint_details, reason)
-• update_city(new_city, reason)
-• update_machine_status(new_machine_status, reason)
-// NOTE: update_phone_number removed - phone auto-filled from Twilio callingNumber
-
-**Phase 3 - Confirm (1):**
-• confirm_city_and_branch(confirmed, city, branch)
-• final_confirmation(confirmed, additional_complaints, action)
-
-**Phase 4 - Validate (3):**
-• validate_machine_number(machine_no)
-• validate_phone_format(phone_number)
-• validate_city(city_name)
-
-**Phase 5 - Manage (3):**
-• add_additional_complaint(additional_complaint)
-• handle_existing_complaint(complaint_id, action)
-• submit_complaint()
-
-**WHEN TO USE:**
-✅ Customer provides data → Call capture_* function
-✅ Customer corrects data → Call update_* function
-✅ Customer confirms → Call confirm_* function
-✅ Customer adds more problems → Call add_additional_complaint
-✅ Ready to submit → Call submit_complaint
-
-**UPDATE REQUESTS (HIGHEST PRIORITY):**
-When user says:
-• "Galat hai" / "Wrong" / "Change karna hai" / "Update karna hai" / "Dobara note karo" / "Vapas likho"
-→ IMMEDIATELY call appropriate update_* function
-→ Don't ask current state question, handle update FIRST
-
-**CRITICAL:**
-• Functions work WITH JSON extraction (do both)
-• Don't call same function twice unless correcting
-• Use update_* for corrections, not capture_* again
-• Update requests interrupt current flow - handle them first`;
+=== 🔧 FUNCTION CALLING RULES ===
+• Call capture_* function when customer provides new data.
+• Call update_* function immediately when customer corrects or changes any data (e.g., "galat hai", "change karo"). Update requests have the highest priority and should interrupt the normal state flow.
+• Call confirm_* function when customer confirms or rejects.
+• Call submit_complaint() and set "ready_to_submit": true in JSON when customer confirms the final booking.
+• NEVER call the same function twice unless the customer is explicitly correcting data.`;
 
 export default {
     BASE_CONTEXT,
