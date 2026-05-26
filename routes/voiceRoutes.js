@@ -4,7 +4,7 @@ import axios from "axios";
 import { getSmartAIResponse, sanitizeExtractedData, matchServiceCenter, fuzzyMatchMachineNumber } from "../utils/ai.js";
 import { extractAllData } from "../utils/data_extraction.js";
 import { searchFAQ, getAgentInfo, getUnavailableMessage } from "../utils/faq.js";
-import { detectEmotionAndContext, formatNumbersForTTS } from "../utils/cartesia_tts.js";
+import { detectEmotionAndContext, formatNumbersForTTS, generateSpeech } from "../utils/cartesia_tts.js";
 import serviceLogger from "../utils/service_logger.js";
 import performanceLogger from "../utils/performance_logger.js";
 import { executeFunctionCall } from "../utils/function_handlers.js";
@@ -309,8 +309,12 @@ async function speak(twiml, text, options = {}) {
         
         // console.log(`🎤 [TTS] Text: "${formattedText}" | Emotion: ${emotion} | Context: ${context}`);
         
-        // Google TTS only (Cartesia removed)
-        const cartesiaResult = { success: false };
+        // Attempt Cartesia TTS first
+        const cartesiaResult = await generateSpeech(formattedText, { 
+            emotion, 
+            context,
+            callSid: options.callSid
+        });
 
         // 💰 Track TTS usage
         if (options.callSid) {
@@ -517,8 +521,12 @@ async function sayFinal(twiml, text, options = {}) {
         
         // console.log(`🎤 [TTS Final] Text: "${formattedText}" | Emotion: ${emotion} | Context: ${context}`);
         
-        // Google TTS only (Cartesia removed)
-        const cartesiaResult = { success: false };
+        // Attempt Cartesia TTS first
+        const cartesiaResult = await generateSpeech(formattedText, { 
+            emotion, 
+            context,
+            callSid: options.callSid
+        });
 
         // 💰 Track TTS usage
         if (options.callSid) {
@@ -705,7 +713,7 @@ router.post("/", async (req, res) => {
         activeCalls.set(CallSid, callData);
         callData.needsInitialLookup = true; // Signal to /process to do lookups on first turn
 
-        // Use Gather to play the greeting and allow barge-in
+        // Use Gather to play the greeting and do NOT allow barge-in
         const gather = twiml.gather({
             input: "speech dtmf",
             language: TTS_LANG,
@@ -714,7 +722,7 @@ router.post("/", async (req, res) => {
             maxSpeechTime: 15,
             action: "/voice/process",
             method: "POST",
-            bargeIn: true // Allow user to speak over the greeting
+            bargeIn: false // Do not allow user to interrupt the greeting
         });
 
         // ⚡ INSTANT GREETING: Pre-generated WAV file (zero TTS latency)
@@ -906,38 +914,13 @@ router.post("/process", async (req, res) => {
                 return res.type("text/xml").send(twiml.toString());
             }
             
-            // 🧠 KG-FIRST SILENCE HANDLING: Use AI to generate contextual response
-            let silenceResponse;
+            // 🔇 SILENCE HANDLING: Apologize + repeat the same question
+            const apology = "Maaf kijiye, aapki awaaz nahi aayi.";
+            const repeatQuestion = callData.lastQuestion || getSmartSilencePrompt(callData);
+            const silenceResponse = `${apology} ${repeatQuestion}`;
             
-            // For first silence after greeting, encourage user to speak
-            if (callData.turnCount === 1 && callData.silenceCount === 1) {
-                silenceResponse = "Ji, main sun rahi hun. Aap kya chahte hain? Machine ki complaint, service booking, ya koi technical problem?";
-            } else {
-                // Use AI to generate intelligent silence response
-                try {
-                    const silenceLLMStart = performanceLogger.getHighResTime();
-                    const aiResp = await getSmartAIResponse(callData, "[SILENCE]");
-                    const silenceLLMEnd = performanceLogger.getHighResTime();
-                    
-                    // Log silence LLM call
-                    performanceLogger.logLLM(
-                        CallSid,
-                        silenceLLMStart,
-                        silenceLLMEnd,
-                        aiResp.tokens || 0,
-                        aiResp.cost || 0,
-                        null
-                    );
-                    
-                    silenceResponse = aiResp.text || "Ji, bataiye kya madad chahiye?";
-                } catch (error) {
-                    console.warn(`   ⚠️ [SILENCE AI] Failed, using fallback: ${error.message}`);
-                    // Fallback to smart prompt only if AI fails
-                    silenceResponse = getSmartSilencePrompt(callData);
-                }
-            }
-            
-            callData.lastQuestion = silenceResponse;
+            // NOTE: Do NOT update callData.lastQuestion here
+            // Keep the original question so next silence repeats it again (not "sorry sorry sorry...")
             const twimlResult = await safeTTS(twiml, silenceResponse, { emotion: 'professional', callSid: CallSid });
             
             // ✅ CLEAN DEBUGGER - Log silence turn
@@ -951,21 +934,51 @@ router.post("/process", async (req, res) => {
             return res.type("text/xml").send(twimlResult);
         }
         callData.silenceCount = 0;
-
         callData.messages.push({ role: "user", text: userInput, timestamp: new Date() });
+
+        // ── POST-SUBMISSION GOODBYE INTERCEPTOR (0 tokens) ─────────────────────────
+        if (callData.currentState === "POST_SUBMISSION" && userInput && userInput.length >= 2) {
+            const isGoodbye = /kuch\s*nahi|kabhi\s*nahi|nahi\s*chahiye|shukriya|dhanyavaad|dhanyawad|thank\s*you|thanks|bye|no\s*thanks|no\s*thank\s*you|okay\s*bye|tata|kuch\s*aur\s*nahi/i.test(lo) || (lo === "no" || lo === "nahi" || lo === "nhi");
+            
+            if (isGoodbye) {
+                console.log(`   👋 [POST_SUBMISSION] Goodbye detected ("${userInput}"). Hanging up.`);
+                const farewell = "Shukriya. Rajesh Motors se baat karne ke liye dhanyavaad. Apna khayal rakhiyega.";
+                callData.messages.push({ role: "assistant", text: farewell, timestamp: new Date() });
+                
+                try {
+                    callData.usage.durationSeconds = Math.round((Date.now() - callData.usage.startTime) / 1000);
+                    logCallEnd(CallSid, 'complaint_submitted', callData);
+                } catch (err) {
+                    console.log(`📞 CALL END | Reason: complaint_submitted`);
+                }
+                
+                serviceLogger.endSession(CallSid, 'completed');
+                performanceLogger.endSession(CallSid, 'completed');
+                
+                await sayFinal(twiml, farewell, { context: 'farewell', emotion: 'professional', callSid: CallSid });
+                twiml.hangup();
+                activeCalls.delete(CallSid);
+                return res.type("text/xml").send(twiml.toString());
+            }
+        }
 
         // ── STEP 0: Check FAQ first (before any processing) ─────────────────
         const faqResult = searchFAQ(userInput);
         if (faqResult) {
-            callData.messages.push({ role: "assistant", text: faqResult.answer, timestamp: new Date() });
+            let answerText = faqResult.answer;
+            if (callData.currentState === "POST_SUBMISSION") {
+                answerText = `${answerText} Kya aapko aur koi madad chahiye?`;
+                callData.lastQuestion = "Kya aapko aur koi madad chahiye?";
+            }
+            callData.messages.push({ role: "assistant", text: answerText, timestamp: new Date() });
             activeCalls.set(CallSid, callData);
-            const twimlResult = await safeTTS(twiml, faqResult.answer, { emotion: 'professional', callSid: CallSid });
+            const twimlResult = await safeTTS(twiml, answerText, { emotion: 'professional', callSid: CallSid });
 
             // Log FAQ turn
             try {
-                logTurn(callData.turnCount, userInput, faqResult.answer, callData, `faq_match:${faqResult.faqId}`);
+                logTurn(callData.turnCount, userInput, answerText, callData, `faq_match:${faqResult.faqId}`);
             } catch (err) {
-                console.log(`🔄 TURN ${callData.turnCount} | USER: "${userInput}" | AGENT: "${faqResult.answer}"`);
+                console.log(`🔄 TURN ${callData.turnCount} | USER: "${userInput}" | AGENT: "${answerText}"`);
             }
 
             return res.type("text/xml").send(twimlResult);
@@ -2421,7 +2434,7 @@ router.post("/process", async (req, res) => {
 
         // Check again after AI — but route through final confirm if now complete
         const stillMissing = missingField(callData.extractedData);
-        if (!stillMissing && machineValidated && !aiResp.readyToSubmit) {
+        if (!stillMissing && machineValidated && !aiResp.readyToSubmit && callData.currentState !== "POST_SUBMISSION") {
             const finalQuestion = "Aur koi problem toh nahi machine mein? Save kar dun complaint?";
             
             // LOOP PREVENTION: If we already asked this question and the user responded, 
@@ -2454,9 +2467,13 @@ router.post("/process", async (req, res) => {
         }
 
         // If AI marked as ready to submit, do it immediately
-        if (aiResp.readyToSubmit && machineValidated) {
+        if (aiResp.readyToSubmit && machineValidated && callData.currentState !== "POST_SUBMISSION") {
             callData.messages.push({ role: "assistant", text: aiResp.text, timestamp: new Date() });
             return await handleSubmit(callData, twiml, res, CallSid);
+        }
+
+        if (callData.currentState === "POST_SUBMISSION") {
+            callData.lastQuestion = aiResp.text;
         }
 
         callData.messages.push({ role: "assistant", text: aiResp.text, timestamp: new Date() });
@@ -2556,25 +2573,30 @@ async function handleSubmit(callData, twiml, res, CallSid) {
     }
     
     const id = result.sapId || result.jobId || "";
+    let successMessage = "";
 
     if (id) {
-        await sayFinal(twiml, `Humne aapki complaint register kar di hai. Number hai ${String(id).split("").join(" ")}. Engineer jaldi contact karega. Dhanyavaad!`, { context: 'confirmation', emotion: 'professional' });
+        successMessage = `Humne aapki complaint register kar di hai. Complaint number hai ${String(id).split("").join(" ")}. Kya aapko kuch aur poochna ya madad chahiye?`;
     } else {
-        await sayFinal(twiml, "Humne aapki complaint register kar di hai. Engineer jaldi contact karega. Dhanyavaad!", { context: 'confirmation', emotion: 'professional' });
+        successMessage = "Humne aapki complaint register kar di hai. Kya aapko kuch aur poochna ya madad chahiye?";
     }
 
-    twiml.hangup();
+    // Set state to POST_SUBMISSION so we know how to handle the next user response
+    callData.currentState = "POST_SUBMISSION";
+    callData.lastQuestion = "Kya aapko kuch aur poochna ya madad chahiye?";
+    callData.silenceCount = 0; // Reset silence count for the new state
+    callData.turnCount++;
     
-    // ✅ CLEAN DEBUGGER - Log call end (with error handling)
-    try {
-        callData.usage.durationSeconds = Math.round((Date.now() - callData.usage.startTime) / 1000);
-        logCallEnd(CallSid, 'complaint_submitted', callData);
-    } catch (err) {
-        console.log(`📞 CALL END | Reason: complaint_submitted`);
-    }
-    
-    activeCalls.delete(CallSid);
-    return res.type("text/xml").send(twiml.toString());
+    // Clear complaint-specific data to prevent double-submission if user stays on call
+    callData.extractedData.complaint_title = null;
+    callData.extractedData.complaint_subtitle = null;
+    callData.extractedData.machine_status = null;
+    callData.extractedData.complaint_details = "";
+
+    activeCalls.set(CallSid, callData);
+
+    const twimlResult = await safeTTS(twiml, successMessage, { context: 'confirmation', emotion: 'professional', callSid: CallSid });
+    return res.type("text/xml").send(twimlResult);
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

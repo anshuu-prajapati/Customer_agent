@@ -299,7 +299,10 @@ async function handleCaptureCity(args, callData) {
         
         return {
             success: false,
-            message: `City '${city}' not found in service center list. Please ask customer to provide nearest city from: Jaipur, Kota, Ajmer, Udaipur, Bhilwara, Alwar, Sikar.`
+            needsInput: true,
+            waitingFor: "city",
+            prompt: `Maaf kijiye, ${city} humari list mein nahi hai. Kripya apna nazdeeki shahar bataiye: Jaipur, Kota, Ajmer, Udaipur, Bhilwara, Alwar, ya Sikar?`,
+            message: `City '${city}' not found in service center list. Prompted user for nearest city.`
         };
     }
 }

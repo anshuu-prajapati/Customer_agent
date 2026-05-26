@@ -554,6 +554,82 @@ export async function getSmartAIResponse(callData) {
     let response = '';
     let error = null;
     
+    // Check if we are in POST_SUBMISSION state for zero-bloat conversation
+    if (callData.currentState === "POST_SUBMISSION") {
+        try {
+            const systemPrompt = "You are Priya, a customer support agent at Rajesh Motors. The customer has already successfully registered their complaint. Answer their additional question or query politely and concisely in Hindi (1-2 sentences). Always ask if they need anything else at the end of your response. Do not perform any tool calls or request machine/city details, as they have already been submitted.";
+            
+            let messages = [
+                { role: "system", content: systemPrompt },
+                ...callData.messages.slice(-4).map(m => ({
+                    role: m.role === "user" ? "user" : "assistant",
+                    content: m.text,
+                }))
+            ];
+            
+            const llmStartTime = Date.now();
+            const model = process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o-mini";
+            
+            const resp = await client.chat.completions.create({
+                model: model,
+                messages,
+                temperature: 0.2,
+                max_tokens: 100,
+            });
+            
+            const llmEndTime = Date.now();
+            const tokens = resp.usage?.total_tokens || 0;
+            const cost = calculateCost(tokens, 'azure-openai');
+            const replyText = resp.choices?.[0]?.message?.content?.trim() || "Ji, bataiye.";
+            
+            const latency = Date.now() - startTime;
+            
+            // Log successful LLM usage with model information
+            serviceLogger.logLLM(
+                callData.callSid,
+                service,
+                `${model} (SMART)`,
+                systemPrompt,
+                replyText,
+                {
+                    latency,
+                    llmLatency: llmEndTime - llmStartTime,
+                    tokens,
+                    cost,
+                    success: true,
+                    modelType: 'SMART'
+                }
+            );
+            
+            // Track LLM usage
+            if (callData.usage) {
+                callData.usage.llmInputTokens += resp.usage?.prompt_tokens || 0;
+                callData.usage.llmOutputTokens += resp.usage?.completion_tokens || 0;
+            }
+            
+            return {
+                text: replyText,
+                extractedData: callData.extractedData,
+                readyToSubmit: false,
+                tokens,
+                cost,
+                functionCalls: null,
+                kgFlowDirection: null
+            };
+        } catch (err) {
+            console.error("❌ Error in post-submission AI response:", err.message);
+            return {
+                text: "Ji, kya aapko aur koi madad chahiye?",
+                extractedData: callData.extractedData,
+                readyToSubmit: false,
+                tokens: 0,
+                cost: 0,
+                functionCalls: null,
+                kgFlowDirection: null
+            };
+        }
+    }
+
     try {
         callData.extractedData = sanitizeExtractedData(callData.extractedData);
 
