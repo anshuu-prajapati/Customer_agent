@@ -180,7 +180,8 @@ class KGFlowDirector {
             expectedTurns: 5,
             contextEnhancements: [],
             stateTransition: null,
-            primaryIntent: inputAnalysis.primaryIntent // Add primary intent to flow plan
+            primaryIntent: inputAnalysis.primaryIntent, // Add primary intent to flow plan
+            userInput: inputAnalysis.rawInput // Store raw input for recommendations
         };
 
         // Determine flow type based on input analysis
@@ -309,7 +310,11 @@ class KGFlowDirector {
         }
 
         // Confirmation intent (haan/nahi responses)
-        if (/^(haan|हाँ|ha|हा|yes|theek|ठीक|sahi|सही|bilkul|बिल्कुल|nahi|नहीं|no|galat|गलत|nai|नै)$/i.test(text.trim())) {
+        const isPositive = /(\b(haan|ha|han|theek hai|thik hai|save|kar do|register|done|yes|bilkul|sahi|ok|okay|theek|chalo|hmm)\b)/i.test(text) || 
+                           /(हां|हाँ|ha|हा|ठीक है|ठीक|कर दो|करो|करdo|सेव|रजिस्टर|बिल्कुल|सही है|जी|सहि)/.test(text);
+        const isNegative = /(\b(nahi|nai|nahin|no|mat|band kar|ruk ja|ruk jai|ruk|nahin chahiye|don't|dont)\b)/i.test(text) ||
+                           /(नहीं|नही|ना|गलत|गलत है|नाही|बंद करो|मत)/.test(text);
+        if (isPositive || isNegative || /^(haan|हाँ|ha|हा|yes|theek|ठीक|sahi|सही|bilkul|बिल्कुल|nahi|नहीं|no|galat|गलत|nai|नै)$/i.test(text.trim())) {
             intents.push({ intent: 'confirmation_response', confidence: 0.95 });
         }
 
@@ -588,7 +593,12 @@ class KGFlowDirector {
                 break;
 
             case 'confirmation_response':
-                if (callData.pendingCityConfirm) {
+                if (callData.awaitingMachineNumberConfirm || callData.pendingMachineNumberConfirm) {
+                    const text = (flowPlan.userInput || '').toLowerCase();
+                    const isYes = /(\b(haan|ha|han|theek hai|thik hai|yes|bilkul|sahi|ok|okay|agree)\b)/i.test(text) ||
+                                  /(हां|हाँ|ha|हा|ठीक है|ठीक|बिल्कुल|सही है|जी|सहि)/.test(text);
+                    recommendations.push(`Call confirm_machine_number(confirmed=${isYes}) to handle confirmation of the machine number`);
+                } else if (callData.pendingCityConfirm) {
                     recommendations.push('Call confirm_city_and_branch() to handle city confirmation');
                 } else if (callData.awaitingFinalConfirm) {
                     recommendations.push('Call final_confirmation() and then submit_complaint() if confirmed');
